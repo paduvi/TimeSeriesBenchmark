@@ -1,0 +1,159 @@
+package com.techpago.dao.impl;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.techpago.config.Settings;
+import com.techpago.dao.IUserNotifyDao;
+import com.techpago.model.Pair;
+import com.techpago.model.UserNotify;
+import com.techpago.utility.Util;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+@Component("HBaseUserNotifyDao")
+public class HBaseUserNotifyDao implements IUserNotifyDao {
+
+    private final static Logger logger = Logger.getLogger(HBaseUserNotifyDao.class);
+    private final Connection connection;
+    private final BlockingQueue<Pair<Put, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
+
+    private final String TABLE_NAME;
+    private final static byte[] FAMILY = Bytes.toBytes("cf");
+
+    private final static byte[] ID_COLUMN = Bytes.toBytes("notify_id");
+    private final static byte[] USER_COLUMN = Bytes.toBytes("user_id");
+    private final static byte[] TIMESTAMP_COLUMN = Bytes.toBytes("timestamp");
+    private final static byte[] DATA_COLUMN = Bytes.toBytes("data");
+
+    public HBaseUserNotifyDao() throws Exception {
+        Settings setting = Settings.getInstance();
+        this.TABLE_NAME = setting.HBASE_TABLE;
+
+        Configuration config = HBaseConfiguration.create();
+
+        config.set("hbase.zookeeper.quorum", String.join(",", setting.HBASE_IP));
+        config.setInt("hbase.zookeeper.property.clientPort", setting.HBASE_PORT);
+        config.set("zookeeper.znode.parent", setting.HBASE_LOCATION);
+        config.set("hbase.rpc.timeout", "10000");
+
+        HBaseAdmin.available(config);
+        this.connection = ConnectionFactory.createConnection(config);
+    }
+
+    @PostConstruct
+    void init() throws IOException {
+        try (Admin admin = connection.getAdmin()) {
+            TableName tableName = TableName.valueOf(TABLE_NAME);
+            if (!admin.tableExists(tableName)) {
+                TableDescriptorBuilder tableDescBuilder = TableDescriptorBuilder.newBuilder(tableName);
+
+                ColumnFamilyDescriptorBuilder columnDescBuilder = ColumnFamilyDescriptorBuilder
+                        .newBuilder(FAMILY)
+                        .setTimeToLive((int) Duration.ofDays(3).getSeconds())
+                        .setCompressionType(Compression.Algorithm.SNAPPY);
+
+                tableDescBuilder.setColumnFamily(columnDescBuilder.build());
+                admin.createTable(tableDescBuilder.build());
+                logger.info(String.format("Create table %s successfully\n\n", tableName.getNameAsString()));
+            }
+        }
+
+        AtomicBoolean isAvailable = new AtomicBoolean(true);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
+
+        CompletableFuture.runAsync(() -> {
+            while (isAvailable.get()) {
+                List<Pair<Put, CompletableFuture<Object>>> batch = new ArrayList<>();
+
+                try {
+                    final int BATCH_SIZE = 1000;
+                    int n = queue.drainTo(batch, BATCH_SIZE);
+                    if (n == 0) {
+                        Thread.sleep(50);
+                        continue;
+                    }
+
+                    List<Put> puts = new ArrayList<>();
+                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
+                        puts.add(pair._1);
+                    }
+
+                    try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+                        table.put(puts);
+                    }
+                } catch (Exception e) {
+                    logger.error("Exception when insert hbase record: ", e);
+
+                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
+                        pair._2.completeExceptionally(e);
+                    }
+                } finally {
+                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
+                        pair._2.complete(new Object());
+                    }
+                }
+            }
+        });
+    }
+
+    @Override
+    public void insert(UserNotify userNotify) throws Exception {
+        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+            table.put(map2Put(userNotify));
+        }
+    }
+
+    @Override
+    public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        queue.add(new Pair<>(map2Put(userNotify), future));
+        return future;
+    }
+
+    @Override
+    public void bulkInsert(Collection<UserNotify> listUserNotify) throws Exception {
+        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+            List<Put> puts = new ArrayList<>();
+            for (UserNotify userNotify : listUserNotify) {
+                puts.add(map2Put(userNotify));
+            }
+            table.put(puts);
+        }
+    }
+
+    private static Put map2Put(UserNotify userNotify) throws JsonProcessingException {
+        String key = serializeKey(userNotify.getUserID() + ":" + userNotify.getTimestamp());
+        Put put = new Put(Bytes.toBytes(key));
+
+        put.addColumn(FAMILY, ID_COLUMN, Bytes.toBytes(userNotify.getNotifyID()));
+        put.addColumn(FAMILY, USER_COLUMN, Bytes.toBytes(userNotify.getUserID()));
+        put.addColumn(FAMILY, TIMESTAMP_COLUMN, Bytes.toBytes(userNotify.getTimestamp()));
+        put.addColumn(FAMILY, DATA_COLUMN, Util.OBJECT_MAPPER.writeValueAsBytes(userNotify.getData()));
+
+        return put;
+    }
+
+    private static String serializeKey(String originalKey) {
+        int mod = Math.abs(originalKey.hashCode() % Settings.getInstance().HBASE_SALT);
+        int length = (int) Math.ceil(Math.log10(Settings.getInstance().HBASE_SALT));
+        String prefix = String.format("%0" + length + "d", mod);
+        return prefix + "-" + originalKey;
+    }
+
+}
