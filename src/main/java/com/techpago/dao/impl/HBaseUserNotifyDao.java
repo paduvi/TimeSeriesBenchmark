@@ -6,6 +6,7 @@ import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.Pair;
 import com.techpago.model.UserNotify;
 import com.techpago.utility.Util;
+import com.techpago.validator.IValidator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
@@ -13,6 +14,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -40,6 +42,9 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     private final static byte[] USER_COLUMN = Bytes.toBytes("user_id");
     private final static byte[] TIMESTAMP_COLUMN = Bytes.toBytes("timestamp");
     private final static byte[] DATA_COLUMN = Bytes.toBytes("data");
+
+    @Autowired
+    private IValidator<UserNotify> validator;
 
     public HBaseUserNotifyDao() throws Exception {
         Settings setting = Settings.getInstance();
@@ -114,6 +119,9 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void insert(UserNotify userNotify) throws Exception {
+        if (!validator.validate(userNotify)) {
+            throw new RuntimeException("Invalid data");
+        }
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
             table.put(map2Put(userNotify));
         }
@@ -121,6 +129,9 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
+        if (!validator.validate(userNotify)) {
+            throw new RuntimeException("Invalid data");
+        }
         CompletableFuture<Object> future = new CompletableFuture<>();
         queue.add(new Pair<>(map2Put(userNotify), future));
         return future;
@@ -131,6 +142,9 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
             List<Put> puts = new ArrayList<>();
             for (UserNotify userNotify : listUserNotify) {
+                if (!validator.validate(userNotify)) {
+                    throw new RuntimeException("Invalid data");
+                }
                 puts.add(map2Put(userNotify));
             }
             table.put(puts);
