@@ -151,7 +151,7 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time first fetch asc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchThread) + "ms");
+        logger.info("Average time first fetch asc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         logger.info("Average time fetch more asc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
     }
 
@@ -212,7 +212,7 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time first fetch desc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchThread) + "ms");
+        logger.info("Average time first fetch desc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         logger.info("Average time fetch more desc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
     }
 
