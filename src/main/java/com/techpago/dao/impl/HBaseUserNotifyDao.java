@@ -191,6 +191,8 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         scan.setLimit(20);
         if (fromTime != null) {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
+        } else {
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
         }
 
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
