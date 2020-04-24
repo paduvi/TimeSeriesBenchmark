@@ -7,3 +7,5 @@
 .project
 .classpath
 .DS_Store
+
+settings.yaml

@@ -4,7 +4,8 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -17,7 +18,7 @@ import java.util.Set;
  */
 public class Settings {
 
-    private static final Logger logger = Logger.getLogger(Settings.class);
+    private static final Logger logger = LoggerFactory.getLogger(Settings.class);
     private static volatile Settings instance = null;
     private static final Object mutex = new Object();
 

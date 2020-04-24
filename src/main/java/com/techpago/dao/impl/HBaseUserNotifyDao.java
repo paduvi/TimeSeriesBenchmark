@@ -9,11 +9,13 @@ import com.techpago.utility.Util;
 import com.techpago.validator.IValidator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -31,7 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Component("HBaseUserNotifyDao")
 public class HBaseUserNotifyDao implements IUserNotifyDao {
 
-    private final static Logger logger = Logger.getLogger(HBaseUserNotifyDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(HBaseUserNotifyDao.class);
     private final Connection connection;
     private final BlockingQueue<Pair<Put, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
@@ -57,7 +59,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         config.set("zookeeper.znode.parent", setting.HBASE_LOCATION);
         config.set("hbase.rpc.timeout", "10000");
 
-        HBaseAdmin.available(config);
+        HBaseAdmin.checkHBaseAvailable(config);
         this.connection = ConnectionFactory.createConnection(config);
     }
 
@@ -66,15 +68,18 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         try (Admin admin = connection.getAdmin()) {
             TableName tableName = TableName.valueOf(TABLE_NAME);
             if (!admin.tableExists(tableName)) {
-                TableDescriptorBuilder tableDescBuilder = TableDescriptorBuilder.newBuilder(tableName);
+                //creating table descriptor
+                HTableDescriptor table = new HTableDescriptor(tableName);
 
-                ColumnFamilyDescriptorBuilder columnDescBuilder = ColumnFamilyDescriptorBuilder
-                        .newBuilder(FAMILY)
-                        .setTimeToLive((int) Duration.ofDays(3).getSeconds())
-                        .setCompressionType(Compression.Algorithm.SNAPPY);
+                //creating column family descriptor
+                HColumnDescriptor family = new HColumnDescriptor(FAMILY)
+//                        .setCompressionType(Compression.Algorithm.SNAPPY)
+                        .setTimeToLive((int) Duration.ofDays(3).getSeconds());
 
-                tableDescBuilder.setColumnFamily(columnDescBuilder.build());
-                admin.createTable(tableDescBuilder.build());
+                //adding column family to HTable
+                table.addFamily(family);
+
+                admin.createTable(table);
                 logger.info(String.format("Create table %s successfully\n\n", tableName.getNameAsString()));
             }
         }

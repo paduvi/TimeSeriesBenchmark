@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!--    <property file="${properties.path:-logback.properties}"/>-->
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <logger name="org.spark_project" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
+    <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="ERROR"/>
+    <!--    <logger name="org.ehcache" level="WARN"/>-->
+    <logger name="org.apache.hadoop" level="ERROR"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- deny all events with a level below INFO, that is TRACE and DEBUG -->
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${CONSOLE_ENABLE:-INFO}</level>
+        </filter>
+        <encoder>
+            <pattern>
+                %d{dd-MM-yyyy HH:mm:ss.SSS} %magenta([%thread]) %highlight(%-5level) %logger{36}.%M - %msg%n%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/notify.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>${FILE_ENABLE:-WARN}</level>
+        </filter>
+        <!--        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">-->
+        <!--            <Pattern>-->
+        <!--                %level: %d{dd-MM-yyyy HH:mm:ss.SSS} %logger{36}.%M - %replace(%msg %rEx){'[\r\n]+', '\\n'}%nopex%n-->
+        <!--            </Pattern>-->
+        <!--        </encoder>-->
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <layout class="ch.qos.logback.contrib.json.classic.JsonLayout">
+                <timestampFormat>yyyy-MM-dd'T'HH:mm:ss.SSSX</timestampFormat>
+                <timestampFormatTimezoneId>GMT+7</timestampFormatTimezoneId>
+                <appendLineSeparator>true</appendLineSeparator>
+                <jsonFormatter class="ch.qos.logback.contrib.jackson.JacksonJsonFormatter">
+                    <prettyPrint>true</prettyPrint>
+                </jsonFormatter>
+            </layout>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>
+                logs/archived/log_%d{dd-MM-yyyy}.log
+            </fileNamePattern>
+            <maxHistory>10</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="FILE"/>
+    </root>
+
+</configuration>
