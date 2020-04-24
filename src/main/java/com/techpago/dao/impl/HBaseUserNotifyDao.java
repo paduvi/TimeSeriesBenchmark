@@ -164,6 +164,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         } else {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis())));
         }
+        scan.withStopRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
 
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
             List<UserNotify> results = new ArrayList<>();
