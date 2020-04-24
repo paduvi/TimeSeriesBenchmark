@@ -2,7 +2,7 @@ package com.techpago.dao;
 
 import com.techpago.model.UserNotify;
 
-import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface IUserNotifyDao {
@@ -11,6 +11,7 @@ public interface IUserNotifyDao {
 
     CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception;
 
-    void bulkInsert(Collection<UserNotify> listUserNotify) throws Exception;
+    List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception;
 
+    List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception;
 }

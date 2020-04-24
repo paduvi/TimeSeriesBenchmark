@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.techpago.utility.ULID;
 import com.techpago.utility.Util;
 
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 public class UserNotify {
 
@@ -19,10 +19,13 @@ public class UserNotify {
 
     private ObjectNode data = Util.OBJECT_MAPPER.createObjectNode();
 
+    private final static Random random = new Random();
+    private final static ULID ulid = new ULID();
+
     public static UserNotify createDumbObject() {
         UserNotify userNotify = new UserNotify();
-        userNotify.setUserID(String.valueOf(ThreadLocalRandom.current().nextInt(0, 10000)));
-        userNotify.setNotifyID(new ULID().nextULID());
+        userNotify.setUserID(String.valueOf(random.nextInt(10000)));
+        userNotify.setNotifyID(ulid.nextULID());
         userNotify.setTimestamp(System.currentTimeMillis());
         userNotify.getData().put("foo", "bar");
 

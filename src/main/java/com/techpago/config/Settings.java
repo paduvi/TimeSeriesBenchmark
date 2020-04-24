@@ -40,8 +40,7 @@ public class Settings {
                         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
                         File file = new File("settings.yaml");
-                        logger.info("Overiding Application Settings:");
-                        logger.info(FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+                        logger.info("Overiding Application Settings: \n" + FileUtils.readFileToString(file, StandardCharsets.UTF_8));
                         logger.info("##################\n");
 
                         instance = result = mapper.readValue(file, Settings.class);

@@ -171,7 +171,6 @@
     </dependencies>
 
     <build>
-        <finalName>KinghubNotify</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

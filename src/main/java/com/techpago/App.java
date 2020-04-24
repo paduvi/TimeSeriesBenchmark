@@ -40,13 +40,21 @@ public class App implements CommandLineRunner {
         modeOpt.setRequired(true);
         options.addOption(modeOpt);
 
-        Option numEpochOpt = new Option("e", "epoch", true, "epoch option");
-        numEpochOpt.setRequired(false);
-        options.addOption(numEpochOpt);
+        Option numWriteEpochOpt = new Option("we", "write-epoch", true, "write epoch option");
+        numWriteEpochOpt.setRequired(false);
+        options.addOption(numWriteEpochOpt);
 
-        Option numThreadOpt = new Option("t", "thread", true, "thread option");
-        numThreadOpt.setRequired(false);
-        options.addOption(numThreadOpt);
+        Option numWriteThreadOpt = new Option("wt", "write-thread", true, "write thread option");
+        numWriteThreadOpt.setRequired(false);
+        options.addOption(numWriteThreadOpt);
+
+        Option numFetchEpochOpt = new Option("fe", "fetch-epoch", true, "fetch epoch option");
+        numFetchEpochOpt.setRequired(false);
+        options.addOption(numFetchEpochOpt);
+
+        Option numFetchThreadOpt = new Option("ft", "fetch-thread", true, "fetch thread option");
+        numFetchThreadOpt.setRequired(false);
+        options.addOption(numFetchThreadOpt);
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -54,16 +62,26 @@ public class App implements CommandLineRunner {
         try {
             CommandLine cmd = parser.parse(options, args);
 
-            int mode = Integer.parseInt(cmd.getOptionValue("mode"));
-            int numEpoch = Integer.parseInt(cmd.getOptionValue("epoch", "10"));
-            int numThread = Integer.parseInt(cmd.getOptionValue("thread", "1"));
-
-            logger.info(String.format("mode: %s - numEpoch: %s - numThread: %s", mode, numEpoch, numThread));
+            int mode = Integer.parseInt(cmd.getOptionValue(modeOpt.getLongOpt()));
+            int numWriteEpoch = Integer.parseInt(cmd.getOptionValue(numWriteEpochOpt.getLongOpt(), "10"));
+            int numWriteThread = Integer.parseInt(cmd.getOptionValue(numWriteThreadOpt.getLongOpt(), "1"));
+            int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));
+            int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
 
             switch (mode) {
                 case 1: // benchmark hbase
-                    BenchmarkService hbaseBenchmark = new BenchmarkService(hBaseUserNotifyDao, numEpoch, numThread);
-                    hbaseBenchmark.start();
+                    BenchmarkService hbaseBenchmark = new BenchmarkService(
+                            hBaseUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread
+                    );
+                    hbaseBenchmark.benchmarkWrite();
+                    hbaseBenchmark.benchmarkWriteCallback();
+
+                    hbaseBenchmark.benchmarkFetchAsc();
+                    hbaseBenchmark.benchmarkFetchDesc();
                     break;
             }
         } catch (ParseException e) {

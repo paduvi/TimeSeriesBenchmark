@@ -1,18 +1,23 @@
 package com.techpago.dao.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.Pair;
 import com.techpago.model.UserNotify;
+import com.techpago.utility.ByteUtil;
 import com.techpago.utility.Util;
 import com.techpago.validator.IValidator;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
@@ -24,7 +29,6 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -146,22 +150,66 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     }
 
     @Override
-    public void bulkInsert(Collection<UserNotify> listUserNotify) throws Exception {
+    public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
+        byte[] prefix = Bytes.toBytes(serializeKey(userID) + ":");
+        Filter filter = new PrefixFilter(prefix);
+
+        Scan scan = new Scan();
+        scan.setReversed(true);
+        scan.setFilter(filter);
+        scan.setCaching(10);
+        scan.setLimit(20);
+        if (fromTime != null) {
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
+        }
+
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
-            List<Put> puts = new ArrayList<>();
-            for (UserNotify userNotify : listUserNotify) {
-                if (!validator.validate(userNotify)) {
-                    throw new RuntimeException("Invalid data");
+            List<UserNotify> results = new ArrayList<>();
+
+            try (ResultScanner scanner = table.getScanner(scan)) {
+                for (Result r = scanner.next(); r != null; r = scanner.next()) {
+                    if (r.isEmpty()) {
+                        continue;
+                    }
+                    results.add(map2UserNotify(r));
                 }
-                puts.add(map2Put(userNotify));
             }
-            table.put(puts);
+            return results;
+        }
+    }
+
+    @Override
+    public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
+        byte[] prefix = Bytes.toBytes(serializeKey(userID) + ":");
+        Filter filter = new PrefixFilter(prefix);
+
+        Scan scan = new Scan();
+        scan.setFilter(filter);
+        scan.setCaching(10);
+        scan.setLimit(20);
+        if (fromTime != null) {
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
+        }
+
+        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+            List<UserNotify> results = new ArrayList<>();
+
+            try (ResultScanner scanner = table.getScanner(scan)) {
+                for (Result r = scanner.next(); r != null; r = scanner.next()) {
+                    if (r.isEmpty()) {
+                        continue;
+                    }
+                    results.add(map2UserNotify(r));
+                }
+            }
+            return results;
         }
     }
 
     private static Put map2Put(UserNotify userNotify) throws JsonProcessingException {
-        String key = serializeKey(userNotify.getUserID() + ":" + userNotify.getTimestamp());
-        Put put = new Put(Bytes.toBytes(key));
+        byte[] prefix = Bytes.toBytes(serializeKey(userNotify.getUserID()) + ":");
+        byte[] row = ArrayUtils.addAll(prefix, Bytes.toBytes(userNotify.getTimestamp()));
+        Put put = new Put(row);
 
         put.addColumn(FAMILY, ID_COLUMN, Bytes.toBytes(userNotify.getNotifyID()));
         put.addColumn(FAMILY, USER_COLUMN, Bytes.toBytes(userNotify.getUserID()));
@@ -169,6 +217,15 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         put.addColumn(FAMILY, DATA_COLUMN, Util.OBJECT_MAPPER.writeValueAsBytes(userNotify.getData()));
 
         return put;
+    }
+
+    private static UserNotify map2UserNotify(Result r) throws IOException {
+        UserNotify userNotify = new UserNotify();
+        userNotify.setNotifyID(ByteUtil.toString(r.getValue(FAMILY, ID_COLUMN)));
+        userNotify.setUserID(ByteUtil.toString(r.getValue(FAMILY, USER_COLUMN)));
+        userNotify.setTimestamp(ByteUtil.toLong(r.getValue(FAMILY, TIMESTAMP_COLUMN)));
+        userNotify.setData(Util.OBJECT_MAPPER.readValue(r.getValue(FAMILY, DATA_COLUMN), ObjectNode.class));
+        return userNotify;
     }
 
     private static String serializeKey(String originalKey) {
