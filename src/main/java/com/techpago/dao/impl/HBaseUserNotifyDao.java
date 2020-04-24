@@ -185,9 +185,10 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     @Override
     public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
         byte[] prefix = Bytes.toBytes(serializeKey(userID) + ":");
+        Filter filter = new PrefixFilter(prefix);
 
         Scan scan = new Scan();
-        scan.setRowPrefixFilter(prefix);
+        scan.setFilter(filter);
         scan.setCaching(10);
         scan.setLimit(20);
         if (fromTime != null) {
