@@ -16,6 +16,8 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
@@ -150,10 +152,11 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
         byte[] prefix = Bytes.toBytes(serializeKey(userID) + ":");
+        Filter filter = new PrefixFilter(prefix);
 
         Scan scan = new Scan();
         scan.setReversed(true);
-        scan.setRowPrefixFilter(prefix);
+        scan.setFilter(filter);
         scan.setCaching(10);
         scan.setLimit(20);
         if (fromTime != null) {
@@ -161,7 +164,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         } else {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis())));
         }
-//        scan.withStopRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
+        scan.withStopRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
 
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
             List<UserNotify> results = new ArrayList<>();
