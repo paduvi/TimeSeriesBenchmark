@@ -13,6 +13,7 @@ import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,8 +74,10 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
                 //creating column family descriptor
                 HColumnDescriptor family = new HColumnDescriptor(FAMILY)
-//                        .setCompressionType(Compression.Algorithm.SNAPPY)
                         .setTimeToLive((int) Duration.ofDays(3).getSeconds());
+                if (Settings.getInstance().HBASE_COMPRESSION) {
+                    family.setCompressionType(Compression.Algorithm.SNAPPY);
+                }
 
                 //adding column family to HTable
                 table.addFamily(family);

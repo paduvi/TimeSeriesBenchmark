@@ -27,6 +27,7 @@ public class Settings {
     public String HBASE_LOCATION = "/hbase-unsecure";
     public int HBASE_SALT = 6;
     public String HBASE_TABLE = "timeseries_tbl";
+    public boolean HBASE_COMPRESSION = false;
 
     public static Settings getInstance() {
         Settings result = instance;
