@@ -144,7 +144,7 @@ public class BenchmarkService {
                         totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
                         fetchMoreCount.incrementAndGet();
                     } catch (Exception e) {
-                        logger.error("Error when insert: ", e);
+                        logger.error("Error when fetch: ", e);
                     }
                 }
             });
@@ -212,7 +212,7 @@ public class BenchmarkService {
                         totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
                         fetchMoreCount.incrementAndGet();
                     } catch (Exception e) {
-                        logger.error("Error when insert: ", e);
+                        logger.error("Error when fetch: ", e);
                     }
                 }
             });
