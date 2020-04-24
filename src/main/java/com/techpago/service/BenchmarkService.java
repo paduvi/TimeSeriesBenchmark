@@ -190,7 +190,6 @@ public class BenchmarkService {
             fetchExecutorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
-                        System.out.println(leftCount.get());
                         if (leftCount.get() % 100 == 0) {
                             Thread.sleep(10);
                         }
