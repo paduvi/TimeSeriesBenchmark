@@ -37,11 +37,13 @@ public class BenchmarkService {
         AtomicInteger leftCount = new AtomicInteger(numWriteEpoch);
 
         AtomicLong totalTime = new AtomicLong(0);
-        long startTime = System.currentTimeMillis();
         for (int i = 0; i < numWriteThread; i++) {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
                         long temp = System.currentTimeMillis();
                         userNotifyDao.insert(UserNotify.createDumbObject());
 
@@ -56,9 +58,6 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        long processedTime = System.currentTimeMillis() - startTime;
-
-        logger.info("Processed time insert: " + DurationFormatUtils.formatDurationHMS(processedTime) + "ms");
         logger.info("Total time insert: " + DurationFormatUtils.formatDurationHMS(totalTime.get()) + "ms");
         logger.info("Average time insert: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
     }
@@ -68,11 +67,13 @@ public class BenchmarkService {
         AtomicInteger leftCount = new AtomicInteger(numWriteEpoch);
 
         AtomicLong totalTime = new AtomicLong(0);
-        long startTime = System.currentTimeMillis();
         for (int i = 0; i < numWriteThread; i++) {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
                         long temp = System.currentTimeMillis();
                         userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
 
@@ -87,9 +88,6 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        long processedTime = System.currentTimeMillis() - startTime;
-
-        logger.info("Processed time insert callback: " + DurationFormatUtils.formatDurationHMS(processedTime) + "ms");
         logger.info("Total time insert callback: " + DurationFormatUtils.formatDurationHMS(totalTime.get()) + "ms");
         logger.info("Average time insert callback: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
     }
@@ -103,6 +101,9 @@ public class BenchmarkService {
             writeExecutorService.submit(() -> {
                 while (leftCount.get() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
                         userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
@@ -121,6 +122,10 @@ public class BenchmarkService {
             fetchExecutorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
+
                         String userID = String.valueOf(random.nextInt(10000));
                         long temp = System.currentTimeMillis();
                         List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
@@ -164,6 +169,9 @@ public class BenchmarkService {
             writeExecutorService.submit(() -> {
                 while (leftCount.get() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
                         userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
@@ -182,6 +190,10 @@ public class BenchmarkService {
             fetchExecutorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
+                        if (leftCount.get() % 100 == 0) {
+                            Thread.sleep(10);
+                        }
+
                         String userID = String.valueOf(random.nextInt(10000));
                         long temp = System.currentTimeMillis();
                         List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
