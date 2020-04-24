@@ -43,6 +43,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     private final BlockingQueue<Pair<Put, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final String TABLE_NAME;
+    private final Duration TTL = Duration.ofDays(3);
     private final static byte[] FAMILY = Bytes.toBytes("cf");
 
     private final static byte[] ID_COLUMN = Bytes.toBytes("notify_id");
@@ -78,7 +79,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
                 //creating column family descriptor
                 HColumnDescriptor family = new HColumnDescriptor(FAMILY)
-                        .setTimeToLive((int) Duration.ofDays(3).getSeconds());
+                        .setTimeToLive((int) TTL.getSeconds());
                 if (Settings.getInstance().HBASE_COMPRESSION) {
                     family.setCompressionType(Compression.Algorithm.SNAPPY);
                 }
@@ -192,7 +193,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         if (fromTime != null) {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
         } else {
-            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - TTL.toMillis())));
         }
 
         try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
