@@ -262,8 +262,8 @@ public class BenchmarkService {
 
         for (int i = 0; i < numFetchThread; i++) {
             final AtomicInteger count = new AtomicInteger(numFetchEpoch / numFetchThread);
-            if (i == numFetchThread - 1 && count.get() * numWriteThread != numFetchEpoch) {
-                count.set(numFetchEpoch % numFetchThread);
+            if (i == numFetchThread - 1) {
+                count.addAndGet(numFetchEpoch % numFetchThread);
             }
             long interval = Duration.ofSeconds(seconds).toMillis() / count.get();
             fetchExecutorService.submit(() -> {
@@ -338,8 +338,8 @@ public class BenchmarkService {
 
         for (int i = 0; i < numFetchThread; i++) {
             final AtomicInteger count = new AtomicInteger(numFetchEpoch / numFetchThread);
-            if (i == numFetchThread - 1 && count.get() * numWriteThread != numFetchEpoch) {
-                count.set(numFetchEpoch % numFetchThread);
+            if (i == numFetchThread - 1) {
+                count.addAndGet(numFetchEpoch % numFetchThread);
             }
             long interval = Duration.ofSeconds(seconds).toMillis() / count.get();
             fetchExecutorService.submit(() -> {
