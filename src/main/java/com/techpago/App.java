@@ -97,14 +97,11 @@ public class App implements CommandLineRunner {
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
-            long startTime = System.currentTimeMillis();
             benchmarkService.benchmarkWrite();
             long minTime = System.currentTimeMillis();
-            logger.info("Elapsed time write: " + Util.formatDuration(minTime - startTime));
 
             benchmarkService.benchmarkWriteCallback();
             long maxTime = System.currentTimeMillis();
-            logger.info("Elapsed time write bulk: " + Util.formatDuration(maxTime - minTime));
 
             benchmarkService.benchmarkFetchAsc(minTime, maxTime);
             benchmarkService.benchmarkFetchDesc(minTime, maxTime);

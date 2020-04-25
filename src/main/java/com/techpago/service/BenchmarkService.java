@@ -34,7 +34,7 @@ public class BenchmarkService {
         ExecutorService executorService = Executors.newFixedThreadPool(numWriteThread);
         AtomicInteger leftCount = new AtomicInteger(numWriteEpoch);
 
-        AtomicLong totalTime = new AtomicLong(0);
+        long startTime = System.currentTimeMillis();
         for (int i = 0; i < numWriteThread; i++) {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
@@ -44,8 +44,6 @@ public class BenchmarkService {
                         }
                         long temp = System.currentTimeMillis();
                         userNotifyDao.insert(UserNotify.createDumbObject());
-
-                        totalTime.addAndGet(System.currentTimeMillis() - temp);
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
@@ -56,14 +54,14 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert: " + Util.formatDuration(totalTime.get() / numWriteEpoch));
+        logger.info("Average time insert: " + Util.formatDuration((System.currentTimeMillis() - startTime) / numWriteEpoch));
     }
 
     public void benchmarkWriteCallback() throws InterruptedException {
         ExecutorService executorService = Executors.newFixedThreadPool(numWriteThread);
         AtomicInteger leftCount = new AtomicInteger(numWriteEpoch);
 
-        AtomicLong totalTime = new AtomicLong(0);
+        long startTime = System.currentTimeMillis();
         for (int i = 0; i < numWriteThread; i++) {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
@@ -73,8 +71,6 @@ public class BenchmarkService {
                         }
                         long temp = System.currentTimeMillis();
                         userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
-
-                        totalTime.addAndGet(System.currentTimeMillis() - temp);
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
@@ -85,7 +81,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert callback: " + Util.formatDuration(totalTime.get() / numWriteEpoch));
+        logger.info("Average time insert bulk: " + Util.formatDuration((System.currentTimeMillis() - startTime) / numWriteEpoch));
     }
 
     public void benchmarkFetchAsc(long minTime, long maxTime) throws InterruptedException {
