@@ -121,7 +121,7 @@ public class BenchmarkService {
         while (readCount.getAndDecrement() > 0) {
             fetchExecutorService.submit(() -> {
                 try {
-                    String userID = String.valueOf(random.nextInt(10000));
+                    String userID = String.valueOf(random.nextInt(1000));
                     long temp = System.currentTimeMillis();
                     List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
                     totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
@@ -131,7 +131,7 @@ public class BenchmarkService {
                         fromTime = userNotify.getTimestamp();
                     }
 
-                    userID = String.valueOf(random.nextInt(10000));
+                    userID = String.valueOf(random.nextInt(1000));
                     temp = System.currentTimeMillis();
                     userNotifyDao.fetchAsc(userID, fromTime);
 
@@ -182,7 +182,7 @@ public class BenchmarkService {
         while (readCount.getAndDecrement() > 0) {
             fetchExecutorService.submit(() -> {
                 try {
-                    String userID = String.valueOf(random.nextInt(10000));
+                    String userID = String.valueOf(random.nextInt(1000));
                     long temp = System.currentTimeMillis();
                     List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
                     totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
@@ -192,7 +192,7 @@ public class BenchmarkService {
                         fromTime = userNotify.getTimestamp();
                     }
 
-                    userID = String.valueOf(random.nextInt(10000));
+                    userID = String.valueOf(random.nextInt(1000));
                     userNotifyDao.fetchDesc(userID, fromTime);
 
                     totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
@@ -250,7 +250,7 @@ public class BenchmarkService {
                     try {
                         CompletableFuture.runAsync(() -> {
                             try {
-                                String userID = String.valueOf(random.nextInt(10000));
+                                String userID = String.valueOf(random.nextInt(1000));
                                 long temp = System.currentTimeMillis();
                                 List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
                                 totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
@@ -260,7 +260,7 @@ public class BenchmarkService {
                                     fromTime = userNotify.getTimestamp();
                                 }
 
-                                userID = String.valueOf(random.nextInt(10000));
+                                userID = String.valueOf(random.nextInt(1000));
                                 temp = System.currentTimeMillis();
                                 userNotifyDao.fetchAsc(userID, fromTime);
 
@@ -324,7 +324,7 @@ public class BenchmarkService {
                     try {
                         CompletableFuture.runAsync(() -> {
                             try {
-                                String userID = String.valueOf(random.nextInt(10000));
+                                String userID = String.valueOf(random.nextInt(1000));
                                 long temp = System.currentTimeMillis();
                                 List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
                                 totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
@@ -334,7 +334,7 @@ public class BenchmarkService {
                                     fromTime = userNotify.getTimestamp();
                                 }
 
-                                userID = String.valueOf(random.nextInt(10000));
+                                userID = String.valueOf(random.nextInt(1000));
                                 temp = System.currentTimeMillis();
                                 userNotifyDao.fetchDesc(userID, fromTime);
 
