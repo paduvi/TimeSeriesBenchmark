@@ -2,6 +2,7 @@ package com.techpago;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.service.BenchmarkService;
+import com.techpago.utility.Util;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,10 +97,14 @@ public class App implements CommandLineRunner {
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
+            long startTime = System.currentTimeMillis();
             benchmarkService.benchmarkWrite();
             long minTime = System.currentTimeMillis();
+            logger.info("Elapsed time write: " + Util.formatDuration(minTime - startTime));
+
             benchmarkService.benchmarkWriteCallback();
             long maxTime = System.currentTimeMillis();
+            logger.info("Elapsed time write bulk: " + Util.formatDuration(maxTime - minTime));
 
             benchmarkService.benchmarkFetchAsc(minTime, maxTime);
             benchmarkService.benchmarkFetchDesc(minTime, maxTime);
