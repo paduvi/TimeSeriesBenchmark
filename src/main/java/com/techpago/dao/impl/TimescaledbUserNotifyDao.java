@@ -131,6 +131,11 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
     }
 
     @Override
+    public void flushDB() {
+        jdbcWriteTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
+    }
+
+    @Override
     public void insert(UserNotify userNotify) throws Exception {
         if (!validator.validate(userNotify)) {
             throw new RuntimeException("Invalid data");

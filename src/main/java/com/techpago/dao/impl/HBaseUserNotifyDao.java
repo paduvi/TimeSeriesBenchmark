@@ -127,6 +127,16 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     }
 
     @Override
+    public void flushDB() throws Exception {
+        try (Admin admin = writeConnection.getAdmin()) {
+            TableName tableName = TableName.valueOf(TABLE_NAME);
+            if (admin.tableExists(tableName)) {
+                admin.flush(tableName);
+            }
+        }
+    }
+
+    @Override
     public void insert(UserNotify userNotify) throws Exception {
         if (!validator.validate(userNotify)) {
             throw new RuntimeException("Invalid data");

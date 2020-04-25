@@ -21,13 +21,35 @@ public class BenchmarkService {
     private final int numWriteThread;
     private final int numFetchEpoch;
     private final int numFetchThread;
+    private final int numBootstrap;
 
-    public BenchmarkService(IUserNotifyDao userNotifyDao, int numWriteEpoch, int numWriteThread, int numFetchEpoch, int numFetchThread) {
+    public BenchmarkService(IUserNotifyDao userNotifyDao, int numWriteEpoch, int numWriteThread, int numFetchEpoch, int numFetchThread, int numBootstrap) {
         this.userNotifyDao = userNotifyDao;
         this.numWriteEpoch = numWriteEpoch;
         this.numWriteThread = numWriteThread;
         this.numFetchEpoch = numFetchEpoch;
         this.numFetchThread = numFetchThread;
+        this.numBootstrap = numBootstrap;
+    }
+
+    public void bootstrap() throws InterruptedException {
+        if (this.numBootstrap <= 0) {
+            return;
+        }
+        ExecutorService executorService = Executors.newFixedThreadPool(500);
+        CountDownLatch latch = new CountDownLatch(this.numBootstrap);
+        for (int i = 0; i < Math.min(this.numBootstrap, this.numWriteThread); i++) {
+            executorService.submit(() -> {
+                try {
+                    userNotifyDao.insert(UserNotify.createDumbObject());
+                } catch (Exception e) {
+                    logger.error("Error when insert: ", e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
     }
 
     public void benchmarkWrite() throws InterruptedException {

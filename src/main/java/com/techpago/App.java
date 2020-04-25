@@ -2,7 +2,6 @@ package com.techpago;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.service.BenchmarkService;
-import com.techpago.utility.Util;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,6 +60,10 @@ public class App implements CommandLineRunner {
         numFetchThreadOpt.setRequired(false);
         options.addOption(numFetchThreadOpt);
 
+        Option numBootstrapThreadOpt = new Option("b", "bootstrap", true, "bootstrap option");
+        numBootstrapThreadOpt.setRequired(false);
+        options.addOption(numBootstrapThreadOpt);
+
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
 
@@ -72,6 +75,7 @@ public class App implements CommandLineRunner {
             int numWriteThread = Integer.parseInt(cmd.getOptionValue(numWriteThreadOpt.getLongOpt(), "1"));
             int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));
             int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
+            int numBootstrap = Integer.parseInt(cmd.getOptionValue(numBootstrapThreadOpt.getLongOpt(), "0"));
 
             BenchmarkService benchmarkService;
             switch (mode) {
@@ -81,7 +85,8 @@ public class App implements CommandLineRunner {
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
-                            numFetchThread
+                            numFetchThread,
+                            numBootstrap
                     );
                     break;
                 case 2: // benchmark timescaledb
@@ -90,13 +95,16 @@ public class App implements CommandLineRunner {
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
-                            numFetchThread
+                            numFetchThread,
+                            numBootstrap
                     );
                     break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
+            benchmarkService.bootstrap();
+            
             benchmarkService.benchmarkWrite();
             long minTime = System.currentTimeMillis();
 
