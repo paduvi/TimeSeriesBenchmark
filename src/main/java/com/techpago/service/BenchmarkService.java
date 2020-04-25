@@ -50,7 +50,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert: " + Util.formatDuration(System.currentTimeMillis() - startTime));
+        logger.info("Elapsed time insert: " + Util.formatDuration(System.currentTimeMillis() - startTime));
     }
 
     public void benchmarkWriteCallback() throws InterruptedException {
@@ -73,7 +73,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert bulk: " + Util.formatDuration(System.currentTimeMillis() - startTime));
+        logger.info("Elapsed time insert bulk: " + Util.formatDuration(System.currentTimeMillis() - startTime));
     }
 
     public void benchmarkFetchAsc(long minTime, long maxTime) throws InterruptedException {
