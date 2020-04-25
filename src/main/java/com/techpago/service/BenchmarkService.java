@@ -246,6 +246,7 @@ public class BenchmarkService {
             long interval = Duration.ofSeconds(seconds).toMillis() / count.get();
             fetchExecutorService.submit(() -> {
                 while (count.getAndDecrement() > 0) {
+                    System.out.println(count.get());
                     try {
                         CompletableFuture.runAsync(() -> {
                             try {
