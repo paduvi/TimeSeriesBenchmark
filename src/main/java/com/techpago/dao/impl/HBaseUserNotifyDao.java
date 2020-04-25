@@ -2,6 +2,7 @@ package com.techpago.dao.impl;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.protobuf.ServiceException;
 import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.Pair;
@@ -39,7 +40,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(HBaseUserNotifyDao.class);
-    private final Connection connection;
+    private final Connection writeConnection;
+    private final Connection readConnection;
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final static String TABLE_NAME = Settings.getInstance().HBASE_TABLE;
@@ -55,21 +57,13 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     private IValidator<UserNotify> validator;
 
     public HBaseUserNotifyDao() throws Exception {
-        Settings setting = Settings.getInstance();
-        Configuration config = HBaseConfiguration.create();
-
-        config.set("hbase.zookeeper.quorum", String.join(",", setting.HBASE_IP));
-        config.setInt("hbase.zookeeper.property.clientPort", setting.HBASE_PORT);
-        config.set("zookeeper.znode.parent", setting.HBASE_LOCATION);
-        config.set("hbase.rpc.timeout", "10000");
-
-        HBaseAdmin.checkHBaseAvailable(config);
-        this.connection = ConnectionFactory.createConnection(config);
+        writeConnection = createConnection();
+        readConnection = createConnection();
     }
 
     @PostConstruct
     void init() throws IOException {
-        try (Admin admin = connection.getAdmin()) {
+        try (Admin admin = writeConnection.getAdmin()) {
             TableName tableName = TableName.valueOf(TABLE_NAME);
             if (admin.tableExists(tableName)) {
                 admin.disableTable(tableName);
@@ -113,7 +107,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                             puts.add(map2Put(pair._1));
                         }
 
-                        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+                        try (Table table = writeConnection.getTable(TableName.valueOf(TABLE_NAME))) {
                             table.put(puts);
                         }
                     } catch (Exception e) {
@@ -137,7 +131,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         if (!validator.validate(userNotify)) {
             throw new RuntimeException("Invalid data");
         }
-        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+        try (Table table = writeConnection.getTable(TableName.valueOf(TABLE_NAME))) {
             table.put(map2Put(userNotify));
         }
     }
@@ -169,7 +163,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         }
         scan.withStopRow(ArrayUtils.addAll(prefix, Bytes.toBytes(0)));
 
-        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+        try (Table table = readConnection.getTable(TableName.valueOf(TABLE_NAME))) {
             List<UserNotify> results = new ArrayList<>();
 
             try (ResultScanner scanner = table.getScanner(scan)) {
@@ -199,7 +193,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - TTL.toMillis())));
         }
 
-        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+        try (Table table = readConnection.getTable(TableName.valueOf(TABLE_NAME))) {
             List<UserNotify> results = new ArrayList<>();
 
             try (ResultScanner scanner = table.getScanner(scan)) {
@@ -212,6 +206,19 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
             }
             return results;
         }
+    }
+
+    private static Connection createConnection() throws IOException, ServiceException {
+        Settings setting = Settings.getInstance();
+        Configuration config = HBaseConfiguration.create();
+
+        config.set("hbase.zookeeper.quorum", String.join(",", setting.HBASE_IP));
+        config.setInt("hbase.zookeeper.property.clientPort", setting.HBASE_PORT);
+        config.set("zookeeper.znode.parent", setting.HBASE_LOCATION);
+        config.set("hbase.rpc.timeout", "10000");
+
+        HBaseAdmin.checkHBaseAvailable(config);
+        return ConnectionFactory.createConnection(config);
     }
 
     private static Put map2Put(UserNotify userNotify) throws JsonProcessingException {

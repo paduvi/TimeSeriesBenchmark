@@ -39,7 +39,8 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
     private static final Logger logger = LoggerFactory.getLogger(TimescaledbUserNotifyDao.class);
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
-    private final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcWriteTemplate;
+    private final JdbcTemplate jdbcReadTemplate;
     private static final String TABLE_NAME = "\"" + Settings.getInstance().TIMESCALEDB_TABLE + "\"";
     private static final RowMapper<UserNotify> ROW_MAPPER = new UserNotifyRowMapper();
 
@@ -47,44 +48,14 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
     private IValidator<UserNotify> validator;
 
     public TimescaledbUserNotifyDao() {
-        Settings setting = Settings.getInstance();
-
-        BasicDataSource dataSource = new BasicDataSource();
-        String connectionString = String.format("jdbc:postgresql://%s:%d/%s", setting.TIMESCALEDB_IP,
-                setting.TIMESCALEDB_PORT, setting.TIMESCALEDB_DB);
-
-        dataSource.setDriverClassName(Driver.class.getName());
-        dataSource.setUsername(setting.TIMESCALEDB_USER);
-        dataSource.setPassword(setting.TIMESCALEDB_PASSWORD);
-        dataSource.setUrl(connectionString);
-        dataSource.setInitialSize(0);
-        dataSource.setMaxTotal(setting.TIMESCALEDB_POOL_SIZE);
-
-        dataSource.setTestOnBorrow(true);
-        dataSource.setTestWhileIdle(true);
-        dataSource.setValidationQueryTimeout(3);
-        dataSource.setValidationQuery("SELECT 1");
-
-        dataSource.setMaxConnLifetimeMillis(900000);
-        dataSource.setTimeBetweenEvictionRunsMillis(300000);
-        dataSource.setLogExpiredConnections(false);
-
-        jdbcTemplate = new JdbcTemplate(dataSource);
-        jdbcTemplate.setResultsMapCaseInsensitive(false);
-
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            try {
-                dataSource.close();
-            } catch (SQLException e) {
-                logger.error("Error: ", e);
-            }
-        }));
+        jdbcWriteTemplate = createJdbcTemplate();
+        jdbcReadTemplate = createJdbcTemplate();
     }
 
     @PostConstruct
     void init() {
         // create table if not exists
-        jdbcTemplate.execute(String.format(
+        jdbcWriteTemplate.execute(String.format(
                 "CREATE TABLE IF NOT EXISTS %s (" +
                         "timestamp      TIMESTAMPTZ     NOT NULL," +
                         "user_id         TEXT            NOT NULL," +
@@ -94,9 +65,9 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                 TABLE_NAME));
 
         // create hypertable if not exists
-        jdbcTemplate.execute(String.format("SELECT create_hypertable('%s', 'timestamp', if_not_exists => TRUE)",
+        jdbcWriteTemplate.execute(String.format("SELECT create_hypertable('%s', 'timestamp', if_not_exists => TRUE)",
                 TABLE_NAME));
-        jdbcTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
+        jdbcWriteTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
@@ -126,7 +97,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                         String sql = String.format("INSERT INTO %s(timestamp, user_id, notify_id, data)" +
                                 "  VALUES (?, ?, ?, ?)", TABLE_NAME);
 
-                        jdbcTemplate.batchUpdate(sql,
+                        jdbcWriteTemplate.batchUpdate(sql,
                                 new BatchPreparedStatementSetter() {
                                     public void setValues(PreparedStatement ps, int i) throws SQLException {
                                         Pair<UserNotify, PGobject> pair = list.get(i);
@@ -171,7 +142,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
         data.setType("jsonb");
         data.setValue(Util.OBJECT_MAPPER.writeValueAsString(userNotify.getData()));
 
-        jdbcTemplate.update(sql, ps -> {
+        jdbcWriteTemplate.update(sql, ps -> {
             ps.setTimestamp(1, new Timestamp(userNotify.getTimestamp()), Calendar.getInstance());
             ps.setString(2, userNotify.getUserID());
             ps.setString(3, userNotify.getNotifyID());
@@ -199,7 +170,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
         }
         sql += " ORDER BY timestamp DESC LIMIT 20";
 
-        return jdbcTemplate.query(sql, params.toArray(), ROW_MAPPER);
+        return jdbcReadTemplate.query(sql, params.toArray(), ROW_MAPPER);
     }
 
     @Override
@@ -212,7 +183,44 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
         }
         sql += " ORDER BY timestamp ASC LIMIT 20";
 
-        return jdbcTemplate.query(sql, params.toArray(), ROW_MAPPER);
+        return jdbcReadTemplate.query(sql, params.toArray(), ROW_MAPPER);
+    }
+
+    private static JdbcTemplate createJdbcTemplate() {
+        Settings setting = Settings.getInstance();
+
+        BasicDataSource dataSource = new BasicDataSource();
+        String connectionString = String.format("jdbc:postgresql://%s:%d/%s", setting.TIMESCALEDB_IP,
+                setting.TIMESCALEDB_PORT, setting.TIMESCALEDB_DB);
+
+        dataSource.setDriverClassName(Driver.class.getName());
+        dataSource.setUsername(setting.TIMESCALEDB_USER);
+        dataSource.setPassword(setting.TIMESCALEDB_PASSWORD);
+        dataSource.setUrl(connectionString);
+        dataSource.setInitialSize(0);
+        dataSource.setMaxTotal(setting.TIMESCALEDB_POOL_SIZE);
+
+        dataSource.setTestOnBorrow(true);
+        dataSource.setTestWhileIdle(true);
+        dataSource.setValidationQueryTimeout(3);
+        dataSource.setValidationQuery("SELECT 1");
+
+        dataSource.setMaxConnLifetimeMillis(900000);
+        dataSource.setTimeBetweenEvictionRunsMillis(300000);
+        dataSource.setLogExpiredConnections(false);
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.setResultsMapCaseInsensitive(false);
+
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            try {
+                dataSource.close();
+            } catch (SQLException e) {
+                logger.error("Error: ", e);
+            }
+        }));
+
+        return jdbcTemplate;
     }
 
     private static class UserNotifyRowMapper implements RowMapper<UserNotify> {
