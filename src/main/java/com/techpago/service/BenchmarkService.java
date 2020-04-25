@@ -157,7 +157,11 @@ public class BenchmarkService {
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Average time first fetch asc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Average time fetch more asc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+        if (fetchMoreCount.get() == 0) {
+            logger.info("No fetch more asc");
+        } else {
+            logger.info("Average time fetch more asc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+        }
     }
 
     public void benchmarkFetchDesc() throws InterruptedException {
@@ -225,7 +229,11 @@ public class BenchmarkService {
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Average time first fetch desc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Average time fetch more desc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+        if (fetchMoreCount.get() == 0) {
+            logger.info("No fetch more desc");
+        } else {
+            logger.info("Average time fetch more desc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+        }
     }
 
 }

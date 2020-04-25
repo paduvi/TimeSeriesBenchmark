@@ -40,10 +40,10 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(HBaseUserNotifyDao.class);
     private final Connection connection;
-    private final BlockingQueue<Pair<Put, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
-    private final String TABLE_NAME;
-    private final Duration TTL = Duration.ofDays(3);
+    private final static String TABLE_NAME = Settings.getInstance().HBASE_TABLE;
+    private final static Duration TTL = Duration.ofDays(3);
     private final static byte[] FAMILY = Bytes.toBytes("cf");
 
     private final static byte[] ID_COLUMN = Bytes.toBytes("notify_id");
@@ -56,8 +56,6 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     public HBaseUserNotifyDao() throws Exception {
         Settings setting = Settings.getInstance();
-        this.TABLE_NAME = setting.HBASE_TABLE;
-
         Configuration config = HBaseConfiguration.create();
 
         config.set("hbase.zookeeper.quorum", String.join(",", setting.HBASE_IP));
@@ -73,8 +71,10 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     void init() throws IOException {
         try (Admin admin = connection.getAdmin()) {
             TableName tableName = TableName.valueOf(TABLE_NAME);
-            admin.disableTable(tableName);
-            admin.deleteTable(tableName);
+            if (admin.tableExists(tableName)) {
+                admin.disableTable(tableName);
+                admin.deleteTable(tableName);
+            }
 
             //creating table descriptor
             HTableDescriptor table = new HTableDescriptor(tableName);
@@ -98,7 +98,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
         CompletableFuture.runAsync(() -> {
             while (isAvailable.get()) {
-                List<Pair<Put, CompletableFuture<Object>>> batch = new ArrayList<>();
+                List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
                 try {
                     final int BATCH_SIZE = 1000;
@@ -109,8 +109,8 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                     }
 
                     List<Put> puts = new ArrayList<>();
-                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
-                        puts.add(pair._1);
+                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                        puts.add(map2Put(pair._1));
                     }
 
                     try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
@@ -119,11 +119,11 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                 } catch (Exception e) {
                     logger.error("Exception when insert hbase record: ", e);
 
-                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
+                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
                         pair._2.completeExceptionally(e);
                     }
                 } finally {
-                    for (Pair<Put, CompletableFuture<Object>> pair : batch) {
+                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
                         pair._2.complete(new Object());
                     }
                 }
@@ -147,7 +147,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
             throw new RuntimeException("Invalid data");
         }
         CompletableFuture<Object> future = new CompletableFuture<>();
-        queue.add(new Pair<>(map2Put(userNotify), future));
+        queue.add(new Pair<>(userNotify, future));
         return future;
     }
 

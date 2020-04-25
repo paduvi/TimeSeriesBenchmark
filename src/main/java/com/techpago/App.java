@@ -21,6 +21,10 @@ public class App implements CommandLineRunner {
     @Qualifier("HBaseUserNotifyDao")
     private IUserNotifyDao hBaseUserNotifyDao;
 
+    @Autowired
+    @Qualifier("TimescaledbUserNotifyDao")
+    private IUserNotifyDao timescaledbUserNotifyDao;
+
     public static void main(String[] args) {
         WebApplicationType webType = WebApplicationType.NONE;
 
@@ -68,22 +72,37 @@ public class App implements CommandLineRunner {
             int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));
             int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
 
+            BenchmarkService benchmarkService;
             switch (mode) {
                 case 1: // benchmark hbase
-                    BenchmarkService hbaseBenchmark = new BenchmarkService(
+                    benchmarkService = new BenchmarkService(
                             hBaseUserNotifyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
                             numFetchThread
                     );
-                    hbaseBenchmark.benchmarkWrite();
-                    hbaseBenchmark.benchmarkWriteCallback();
-
-                    hbaseBenchmark.benchmarkFetchAsc();
-                    hbaseBenchmark.benchmarkFetchDesc();
                     break;
+                case 2: // benchmark timescaledb
+                    benchmarkService = new BenchmarkService(
+                            timescaledbUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread
+                    );
+                    break;
+                default:
+                    throw new IllegalStateException("Unexpected value: " + mode);
             }
+
+            benchmarkService.benchmarkWrite();
+            benchmarkService.benchmarkWriteCallback();
+
+            benchmarkService.benchmarkFetchAsc();
+            benchmarkService.benchmarkFetchDesc();
+
+            System.exit(0);
         } catch (ParseException e) {
             formatter.printHelp("utility-name", options);
         } catch (Exception e) {

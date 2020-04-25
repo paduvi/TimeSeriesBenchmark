@@ -29,6 +29,14 @@ public class Settings {
     public String HBASE_TABLE = "timeseries_tbl";
     public boolean HBASE_COMPRESSION = false;
 
+    public String TIMESCALEDB_IP = "localhost";
+    public int TIMESCALEDB_PORT = 5432;
+    public String TIMESCALEDB_DB = "postgres";
+    public String TIMESCALEDB_TABLE = "timeseries_tbl";
+    public String TIMESCALEDB_USER = "postgres";
+    public String TIMESCALEDB_PASSWORD = "";
+    public int TIMESCALEDB_POOL_SIZE = 20;
+
     public static Settings getInstance() {
         Settings result = instance;
         if (result == null) {
@@ -40,7 +48,7 @@ public class Settings {
                         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
                         File file = new File("settings.yaml");
-                        logger.info("Overiding Application Settings: \n" + FileUtils.readFileToString(file, StandardCharsets.UTF_8));
+                        logger.info("Overiding Application Settings: \n\n" + FileUtils.readFileToString(file, StandardCharsets.UTF_8));
                         logger.info("##################\n");
 
                         instance = result = mapper.readValue(file, Settings.class);
