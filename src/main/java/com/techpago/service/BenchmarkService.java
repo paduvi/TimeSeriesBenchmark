@@ -116,10 +116,10 @@ public class BenchmarkService {
         AtomicInteger fetchMoreCount = new AtomicInteger(0);
 
         final Random random = new Random();
-
+        AtomicInteger readCount = new AtomicInteger(numFetchEpoch);
         for (int i = 0; i < numFetchThread; i++) {
             CompletableFuture.runAsync(() -> {
-                while (leftCount.getAndDecrement() > 0) {
+                while (readCount.getAndDecrement() > 0) {
                     fetchExecutorService.submit(() -> {
                         try {
                             String userID = String.valueOf(random.nextInt(10000));
@@ -141,6 +141,8 @@ public class BenchmarkService {
                             fetchMoreCount.incrementAndGet();
                         } catch (Exception e) {
                             logger.error("Error when fetch: ", e);
+                        } finally {
+                            leftCount.decrementAndGet();
                         }
                     });
                 }
@@ -186,10 +188,10 @@ public class BenchmarkService {
         AtomicInteger fetchMoreCount = new AtomicInteger(0);
 
         final Random random = new Random();
-
+        AtomicInteger readCount = new AtomicInteger(numFetchEpoch);
         for (int i = 0; i < numFetchThread; i++) {
             CompletableFuture.runAsync(() -> {
-                while (leftCount.getAndDecrement() > 0) {
+                while (readCount.getAndDecrement() > 0) {
                     fetchExecutorService.submit(() -> {
                         try {
                             String userID = String.valueOf(random.nextInt(10000));
@@ -211,6 +213,8 @@ public class BenchmarkService {
                             fetchMoreCount.incrementAndGet();
                         } catch (Exception e) {
                             logger.error("Error when fetch: ", e);
+                        } finally {
+                            leftCount.decrementAndGet();
                         }
                     });
                 }
