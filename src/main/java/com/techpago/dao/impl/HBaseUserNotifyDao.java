@@ -92,7 +92,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                     List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
                     try {
-                        final int BATCH_SIZE = 1000;
+                        final int BATCH_SIZE = 100;
                         int n = queue.drainTo(batch, BATCH_SIZE);
                         if (n == 0) {
                             Thread.sleep(50);

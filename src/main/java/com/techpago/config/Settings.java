@@ -22,7 +22,7 @@ public class Settings {
     private static volatile Settings instance = null;
     private static final Object mutex = new Object();
 
-    public int EVENT_LOOP_COUNT = 20;
+    public int EVENT_LOOP_COUNT = 10;
 
     public Set<String> HBASE_IP = Collections.singleton("localhost");
     public int HBASE_PORT = 2181;
