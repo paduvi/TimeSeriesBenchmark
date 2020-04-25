@@ -39,19 +39,17 @@ public class BenchmarkService {
         }
 
         ExecutorService executorService = Executors.newFixedThreadPool(500);
-        CountDownLatch latch = new CountDownLatch(this.numBootstrap);
-        for (int i = 0; i < Math.min(this.numBootstrap, this.numWriteThread); i++) {
+        for (int i = 0; i < this.numBootstrap; i++) {
             executorService.submit(() -> {
                 try {
                     userNotifyDao.insert(UserNotify.createDumbObject());
                 } catch (Exception e) {
                     logger.error("Error when insert: ", e);
-                } finally {
-                    latch.countDown();
                 }
             });
         }
-        latch.await();
+        executorService.shutdown();
+        executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
     }
 
     public void benchmarkWrite() throws InterruptedException {
