@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -117,42 +118,40 @@ public class BenchmarkService {
         final Random random = new Random();
 
         for (int i = 0; i < numFetchThread; i++) {
-            fetchExecutorService.submit(() -> {
+            CompletableFuture.runAsync(() -> {
                 while (leftCount.getAndDecrement() > 0) {
-                    try {
-                        if (leftCount.get() % 100 == 0) {
-                            Thread.sleep(10);
-                        }
+                    fetchExecutorService.submit(() -> {
+                        try {
+                            String userID = String.valueOf(random.nextInt(10000));
+                            long temp = System.currentTimeMillis();
+                            List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
+                            totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
 
-                        String userID = String.valueOf(random.nextInt(10000));
-                        long temp = System.currentTimeMillis();
-                        List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
-                        totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+                            if (result.isEmpty()) {
+                                return;
+                            }
+                            Long fromTime = null;
+                            for (UserNotify userNotify : result) {
+                                fromTime = userNotify.getTimestamp();
+                            }
+                            temp = System.currentTimeMillis();
+                            userNotifyDao.fetchAsc(userID, fromTime);
 
-                        if (result.isEmpty()) {
-                            continue;
+                            totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                            fetchMoreCount.incrementAndGet();
+                        } catch (Exception e) {
+                            logger.error("Error when fetch: ", e);
                         }
-                        Long fromTime = null;
-                        for (UserNotify userNotify : result) {
-                            fromTime = userNotify.getTimestamp();
-                        }
-                        temp = System.currentTimeMillis();
-                        userNotifyDao.fetchAsc(userID, fromTime);
-
-                        totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                        fetchMoreCount.incrementAndGet();
-                    } catch (Exception e) {
-                        logger.error("Error when fetch: ", e);
-                    }
+                    });
                 }
             });
         }
 
-        fetchExecutorService.shutdown();
-        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+
+        fetchExecutorService.shutdown();
+        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Avg time simultaneous first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
@@ -189,42 +188,40 @@ public class BenchmarkService {
         final Random random = new Random();
 
         for (int i = 0; i < numFetchThread; i++) {
-            fetchExecutorService.submit(() -> {
+            CompletableFuture.runAsync(() -> {
                 while (leftCount.getAndDecrement() > 0) {
-                    try {
-                        if (leftCount.get() % 100 == 0) {
-                            Thread.sleep(10);
-                        }
+                    fetchExecutorService.submit(() -> {
+                        try {
+                            String userID = String.valueOf(random.nextInt(10000));
+                            long temp = System.currentTimeMillis();
+                            List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
+                            totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
 
-                        String userID = String.valueOf(random.nextInt(10000));
-                        long temp = System.currentTimeMillis();
-                        List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
-                        totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+                            if (result.isEmpty()) {
+                                return;
+                            }
+                            Long fromTime = null;
+                            for (UserNotify userNotify : result) {
+                                fromTime = userNotify.getTimestamp();
+                            }
+                            temp = System.currentTimeMillis();
+                            userNotifyDao.fetchDesc(userID, fromTime);
 
-                        if (result.isEmpty()) {
-                            continue;
+                            totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                            fetchMoreCount.incrementAndGet();
+                        } catch (Exception e) {
+                            logger.error("Error when fetch: ", e);
                         }
-                        Long fromTime = null;
-                        for (UserNotify userNotify : result) {
-                            fromTime = userNotify.getTimestamp();
-                        }
-                        temp = System.currentTimeMillis();
-                        userNotifyDao.fetchDesc(userID, fromTime);
-
-                        totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                        fetchMoreCount.incrementAndGet();
-                    } catch (Exception e) {
-                        logger.error("Error when fetch: ", e);
-                    }
+                    });
                 }
             });
         }
 
-        fetchExecutorService.shutdown();
-        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+
+        fetchExecutorService.shutdown();
+        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Avg time simultaneous first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
@@ -266,41 +263,46 @@ public class BenchmarkService {
                 count.addAndGet(numFetchEpoch % numFetchThread);
             }
             long interval = Duration.ofSeconds(seconds).toMillis() / count.get();
-            fetchExecutorService.submit(() -> {
+            CompletableFuture.runAsync(() -> {
                 while (count.getAndDecrement() > 0) {
                     try {
-                        leftCount.getAndDecrement();
+                        fetchExecutorService.submit(() -> {
+                            try {
+                                String userID = String.valueOf(random.nextInt(10000));
+                                long temp = System.currentTimeMillis();
+                                List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
+                                totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+
+                                if (result.isEmpty()) {
+                                    return;
+                                }
+                                Long fromTime = null;
+                                for (UserNotify userNotify : result) {
+                                    fromTime = userNotify.getTimestamp();
+                                }
+                                temp = System.currentTimeMillis();
+                                userNotifyDao.fetchAsc(userID, fromTime);
+
+                                totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                                fetchMoreCount.incrementAndGet();
+                            } catch (Exception e) {
+                                logger.error("Error when fetch: ", e);
+                            } finally {
+                                leftCount.getAndDecrement();
+                            }
+                        });
                         Thread.sleep(interval);
-
-                        String userID = String.valueOf(random.nextInt(10000));
-                        long temp = System.currentTimeMillis();
-                        List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
-                        totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
-
-                        if (result.isEmpty()) {
-                            continue;
-                        }
-                        Long fromTime = null;
-                        for (UserNotify userNotify : result) {
-                            fromTime = userNotify.getTimestamp();
-                        }
-                        temp = System.currentTimeMillis();
-                        userNotifyDao.fetchAsc(userID, fromTime);
-
-                        totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                        fetchMoreCount.incrementAndGet();
-                    } catch (Exception e) {
-                        logger.error("Error when fetch: ", e);
+                    } catch (InterruptedException ignored) {
                     }
                 }
             });
         }
 
-        fetchExecutorService.shutdown();
-        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+
+        fetchExecutorService.shutdown();
+        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Avg time RAMP first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
@@ -342,41 +344,46 @@ public class BenchmarkService {
                 count.addAndGet(numFetchEpoch % numFetchThread);
             }
             long interval = Duration.ofSeconds(seconds).toMillis() / count.get();
-            fetchExecutorService.submit(() -> {
+            CompletableFuture.runAsync(() -> {
                 while (count.getAndDecrement() > 0) {
                     try {
-                        leftCount.getAndDecrement();
+                        fetchExecutorService.submit(() -> {
+                            try {
+                                String userID = String.valueOf(random.nextInt(10000));
+                                long temp = System.currentTimeMillis();
+                                List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
+                                totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+
+                                if (result.isEmpty()) {
+                                    return;
+                                }
+                                Long fromTime = null;
+                                for (UserNotify userNotify : result) {
+                                    fromTime = userNotify.getTimestamp();
+                                }
+                                temp = System.currentTimeMillis();
+                                userNotifyDao.fetchDesc(userID, fromTime);
+
+                                totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                                fetchMoreCount.incrementAndGet();
+                            } catch (Exception e) {
+                                logger.error("Error when fetch: ", e);
+                            } finally {
+                                leftCount.getAndDecrement();
+                            }
+                        });
                         Thread.sleep(interval);
-
-                        String userID = String.valueOf(random.nextInt(10000));
-                        long temp = System.currentTimeMillis();
-                        List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
-                        totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
-
-                        if (result.isEmpty()) {
-                            continue;
-                        }
-                        Long fromTime = null;
-                        for (UserNotify userNotify : result) {
-                            fromTime = userNotify.getTimestamp();
-                        }
-                        temp = System.currentTimeMillis();
-                        userNotifyDao.fetchDesc(userID, fromTime);
-
-                        totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                        fetchMoreCount.incrementAndGet();
-                    } catch (Exception e) {
-                        logger.error("Error when fetch: ", e);
+                    } catch (InterruptedException ignored) {
                     }
                 }
             });
         }
 
-        fetchExecutorService.shutdown();
-        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+
+        fetchExecutorService.shutdown();
+        fetchExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
         logger.info("Avg time RAMP first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
