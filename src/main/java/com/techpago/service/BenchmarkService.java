@@ -2,6 +2,7 @@ package com.techpago.service;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.UserNotify;
+import com.techpago.utility.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +61,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert: " + (totalTime.get() / numWriteEpoch) + "ms");
+        logger.info("Average time insert: " + Util.formatDuration(totalTime.get() / numWriteEpoch));
     }
 
     public void benchmarkWriteCallback() throws InterruptedException {
@@ -89,7 +90,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert callback: " + (totalTime.get() / numWriteEpoch) + "ms");
+        logger.info("Average time insert callback: " + Util.formatDuration(totalTime.get() / numWriteEpoch));
     }
 
     public void benchmarkFetchAsc() throws InterruptedException {
@@ -149,8 +150,8 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time simultaneous first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Avg time simultaneous fetch more asc: " + (totalFetchMoreTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time simultaneous first fetch asc: " + Util.formatDuration(totalFirstFetchTime.get() / numFetchEpoch));
+        logger.info("Avg time simultaneous fetch more asc: " + Util.formatDuration(totalFetchMoreTime.get() / numFetchEpoch));
     }
 
     public void benchmarkFetchDesc() throws InterruptedException {
@@ -209,8 +210,8 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time simultaneous first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Avg time simultaneous fetch more desc: " + (totalFetchMoreTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time simultaneous first fetch desc: " + Util.formatDuration(totalFirstFetchTime.get() / numFetchEpoch));
+        logger.info("Avg time simultaneous fetch more desc: " + Util.formatDuration(totalFetchMoreTime.get() / numFetchEpoch));
     }
 
     public void benchmarkFetchAscRampUp(int seconds) throws InterruptedException {
@@ -283,8 +284,8 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time RAMP first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Avg time RAMP fetch more asc: " + (totalFetchMoreTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time RAMP first fetch asc: " + Util.formatDuration(totalFirstFetchTime.get() / numFetchEpoch));
+        logger.info("Avg time RAMP fetch more asc: " + Util.formatDuration(totalFetchMoreTime.get() / numFetchEpoch));
     }
 
     public void benchmarkFetchDescRampUp(int seconds) throws InterruptedException {
@@ -357,8 +358,8 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time RAMP first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
-        logger.info("Avg time RAMP fetch more desc: " + (totalFetchMoreTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time RAMP first fetch desc: " + Util.formatDuration(totalFirstFetchTime.get() / numFetchEpoch));
+        logger.info("Avg time RAMP fetch more desc: " + Util.formatDuration(totalFetchMoreTime.get() / numFetchEpoch));
     }
 
 }

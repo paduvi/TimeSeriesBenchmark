@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -50,6 +51,10 @@ public class Util {
             });
         }
         return CompletableFuture.anyOf(failure, CompletableFuture.allOf(futures));
+    }
+
+    public static String formatDuration(long durationMillis) {
+        return DurationFormatUtils.formatDuration(durationMillis, "s.SSS", true);
     }
 
 }
