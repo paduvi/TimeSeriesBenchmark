@@ -24,7 +24,7 @@ public class UserNotify {
 
     public static UserNotify createDumbObject() {
         UserNotify userNotify = new UserNotify();
-        userNotify.setUserID(String.valueOf(random.nextInt(10000)));
+        userNotify.setUserID(String.valueOf(random.nextInt(1000)));
         userNotify.setNotifyID(ulid.nextULID());
         userNotify.setTimestamp(System.currentTimeMillis());
         userNotify.getData().put("foo", "bar");
