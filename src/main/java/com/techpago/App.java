@@ -104,11 +104,13 @@ public class App implements CommandLineRunner {
             }
 
             benchmarkService.bootstrap();
-            
             benchmarkService.benchmarkWrite();
-            long minTime = System.currentTimeMillis();
 
+            benchmarkService.bootstrap();
             benchmarkService.benchmarkWriteCallback();
+
+            long minTime = System.currentTimeMillis();
+            benchmarkService.bootstrap();
             long maxTime = System.currentTimeMillis();
 
             benchmarkService.benchmarkFetchAsc(minTime, maxTime);
