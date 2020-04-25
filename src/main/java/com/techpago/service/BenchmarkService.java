@@ -39,10 +39,6 @@ public class BenchmarkService {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
-                        if (leftCount.get() % 100 == 0) {
-                            Thread.sleep(10);
-                        }
-                        long temp = System.currentTimeMillis();
                         userNotifyDao.insert(UserNotify.createDumbObject());
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
@@ -66,10 +62,6 @@ public class BenchmarkService {
             executorService.submit(() -> {
                 while (leftCount.getAndDecrement() > 0) {
                     try {
-                        if (leftCount.get() % 100 == 0) {
-                            Thread.sleep(10);
-                        }
-                        long temp = System.currentTimeMillis();
                         userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
@@ -96,7 +88,7 @@ public class BenchmarkService {
                         if (leftCount.get() % 100 == 0) {
                             Thread.sleep(10);
                         }
-                        userNotifyDao.insert(UserNotify.createDumbObject());
+                        userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
@@ -168,7 +160,7 @@ public class BenchmarkService {
                         if (leftCount.get() % 100 == 0) {
                             Thread.sleep(10);
                         }
-                        userNotifyDao.insert(UserNotify.createDumbObject());
+                        userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
@@ -240,7 +232,7 @@ public class BenchmarkService {
                         if (leftCount.get() % 100 == 0) {
                             Thread.sleep(10);
                         }
-                        userNotifyDao.insert(UserNotify.createDumbObject());
+                        userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
@@ -331,7 +323,7 @@ public class BenchmarkService {
                         if (leftCount.get() % 100 == 0) {
                             Thread.sleep(10);
                         }
-                        userNotifyDao.insert(UserNotify.createDumbObject());
+                        userNotifyDao.insertAsync(UserNotify.createDumbObject()).get();
                     } catch (Exception e) {
                         logger.error("Error when insert: ", e);
                     }
