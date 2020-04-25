@@ -143,6 +143,7 @@ public class BenchmarkService {
                             logger.error("Error when fetch: ", e);
                         } finally {
                             leftCount.decrementAndGet();
+                            System.out.println(leftCount.get());
                         }
                     });
                 }

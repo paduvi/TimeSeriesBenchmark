@@ -1,4 +1,6 @@
 #!/bin/bash
+docker build -t debian-hbase .
+
 echo "HBASE_IP: $(hostname)"
 
 docker run --rm -d -h "$(hostname)" \
