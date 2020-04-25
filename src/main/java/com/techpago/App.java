@@ -97,13 +97,15 @@ public class App implements CommandLineRunner {
             }
 
             benchmarkService.benchmarkWrite();
+            long minTime = System.currentTimeMillis();
             benchmarkService.benchmarkWriteCallback();
+            long maxTime = System.currentTimeMillis();
 
-            benchmarkService.benchmarkFetchAsc();
-            benchmarkService.benchmarkFetchDesc();
+            benchmarkService.benchmarkFetchAsc(minTime, maxTime);
+            benchmarkService.benchmarkFetchDesc(minTime, maxTime);
 
-            benchmarkService.benchmarkFetchAscRampUp(10);
-            benchmarkService.benchmarkFetchDescRampUp(10);
+            benchmarkService.benchmarkFetchAscRampUp(10, minTime, maxTime);
+            benchmarkService.benchmarkFetchDescRampUp(10, minTime, maxTime);
 
             System.exit(0);
         } catch (ParseException e) {
