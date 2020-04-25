@@ -90,7 +90,6 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
             table.addFamily(family);
 
             admin.createTable(table);
-            logger.info(String.format("Create table %s successfully\n\n", tableName.getNameAsString()));
         }
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
