@@ -117,35 +117,31 @@ public class BenchmarkService {
 
         final Random random = new Random();
         AtomicInteger readCount = new AtomicInteger(numFetchEpoch);
-        for (int i = 0; i < numFetchThread; i++) {
-            CompletableFuture.runAsync(() -> {
-                while (readCount.getAndDecrement() > 0) {
-                    fetchExecutorService.submit(() -> {
-                        try {
-                            String userID = String.valueOf(random.nextInt(10000));
-                            long temp = System.currentTimeMillis();
-                            List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
-                            totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+        while (readCount.getAndDecrement() > 0) {
+            fetchExecutorService.submit(() -> {
+                try {
+                    String userID = String.valueOf(random.nextInt(10000));
+                    long temp = System.currentTimeMillis();
+                    List<UserNotify> result = userNotifyDao.fetchAsc(userID, null);
+                    totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
 
-                            if (result.isEmpty()) {
-                                return;
-                            }
-                            Long fromTime = null;
-                            for (UserNotify userNotify : result) {
-                                fromTime = userNotify.getTimestamp();
-                            }
-                            temp = System.currentTimeMillis();
-                            userNotifyDao.fetchAsc(userID, fromTime);
+                    if (result.isEmpty()) {
+                        return;
+                    }
+                    Long fromTime = null;
+                    for (UserNotify userNotify : result) {
+                        fromTime = userNotify.getTimestamp();
+                    }
+                    temp = System.currentTimeMillis();
+                    userNotifyDao.fetchAsc(userID, fromTime);
 
-                            totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                            fetchMoreCount.incrementAndGet();
-                        } catch (Exception e) {
-                            logger.error("Error when fetch: ", e);
-                        } finally {
-                            leftCount.decrementAndGet();
-                            System.out.println(leftCount.get());
-                        }
-                    });
+                    totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                    fetchMoreCount.incrementAndGet();
+                } catch (Exception e) {
+                    logger.error("Error when fetch: ", e);
+                } finally {
+                    leftCount.decrementAndGet();
+                    System.out.println(leftCount.get());
                 }
             });
         }
@@ -190,34 +186,30 @@ public class BenchmarkService {
 
         final Random random = new Random();
         AtomicInteger readCount = new AtomicInteger(numFetchEpoch);
-        for (int i = 0; i < numFetchThread; i++) {
-            CompletableFuture.runAsync(() -> {
-                while (readCount.getAndDecrement() > 0) {
-                    fetchExecutorService.submit(() -> {
-                        try {
-                            String userID = String.valueOf(random.nextInt(10000));
-                            long temp = System.currentTimeMillis();
-                            List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
-                            totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
+        while (readCount.getAndDecrement() > 0) {
+            fetchExecutorService.submit(() -> {
+                try {
+                    String userID = String.valueOf(random.nextInt(10000));
+                    long temp = System.currentTimeMillis();
+                    List<UserNotify> result = userNotifyDao.fetchDesc(userID, null);
+                    totalFirstFetchTime.addAndGet(System.currentTimeMillis() - temp);
 
-                            if (result.isEmpty()) {
-                                return;
-                            }
-                            Long fromTime = null;
-                            for (UserNotify userNotify : result) {
-                                fromTime = userNotify.getTimestamp();
-                            }
-                            temp = System.currentTimeMillis();
-                            userNotifyDao.fetchDesc(userID, fromTime);
+                    if (result.isEmpty()) {
+                        return;
+                    }
+                    Long fromTime = null;
+                    for (UserNotify userNotify : result) {
+                        fromTime = userNotify.getTimestamp();
+                    }
+                    temp = System.currentTimeMillis();
+                    userNotifyDao.fetchDesc(userID, fromTime);
 
-                            totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
-                            fetchMoreCount.incrementAndGet();
-                        } catch (Exception e) {
-                            logger.error("Error when fetch: ", e);
-                        } finally {
-                            leftCount.decrementAndGet();
-                        }
-                    });
+                    totalFetchMoreTime.addAndGet(System.currentTimeMillis() - temp);
+                    fetchMoreCount.incrementAndGet();
+                } catch (Exception e) {
+                    logger.error("Error when fetch: ", e);
+                } finally {
+                    leftCount.decrementAndGet();
                 }
             });
         }
