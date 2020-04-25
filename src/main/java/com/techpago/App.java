@@ -102,6 +102,9 @@ public class App implements CommandLineRunner {
             benchmarkService.benchmarkFetchAsc();
             benchmarkService.benchmarkFetchDesc();
 
+            benchmarkService.benchmarkFetchAscRampUp(10);
+            benchmarkService.benchmarkFetchDescRampUp(10);
+
             System.exit(0);
         } catch (ParseException e) {
             formatter.printHelp("utility-name", options);
