@@ -58,7 +58,6 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Total time insert: " + DurationFormatUtils.formatDurationHMS(totalTime.get()) + "ms");
         logger.info("Average time insert: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
     }
 
@@ -88,7 +87,6 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Total time insert callback: " + DurationFormatUtils.formatDurationHMS(totalTime.get()) + "ms");
         logger.info("Average time insert callback: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
     }
 
