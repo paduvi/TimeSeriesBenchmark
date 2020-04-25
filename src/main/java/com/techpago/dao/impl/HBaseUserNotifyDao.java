@@ -65,25 +65,22 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     void init() throws IOException {
         try (Admin admin = writeConnection.getAdmin()) {
             TableName tableName = TableName.valueOf(TABLE_NAME);
-            if (admin.tableExists(tableName)) {
-                admin.disableTable(tableName);
-                admin.deleteTable(tableName);
+            if (!admin.tableExists(tableName)) {
+                //creating table descriptor
+                HTableDescriptor table = new HTableDescriptor(tableName);
+
+                //creating column family descriptor
+                HColumnDescriptor family = new HColumnDescriptor(FAMILY)
+                        .setTimeToLive((int) TTL.getSeconds());
+                if (Settings.getInstance().HBASE_COMPRESSION) {
+                    family.setCompressionType(Compression.Algorithm.SNAPPY);
+                }
+
+                //adding column family to HTable
+                table.addFamily(family);
+
+                admin.createTable(table);
             }
-
-            //creating table descriptor
-            HTableDescriptor table = new HTableDescriptor(tableName);
-
-            //creating column family descriptor
-            HColumnDescriptor family = new HColumnDescriptor(FAMILY)
-                    .setTimeToLive((int) TTL.getSeconds());
-            if (Settings.getInstance().HBASE_COMPRESSION) {
-                family.setCompressionType(Compression.Algorithm.SNAPPY);
-            }
-
-            //adding column family to HTable
-            table.addFamily(family);
-
-            admin.createTable(table);
         }
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);

@@ -67,7 +67,6 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
         // create hypertable if not exists
         jdbcWriteTemplate.execute(String.format("SELECT create_hypertable('%s', 'timestamp', if_not_exists => TRUE)",
                 TABLE_NAME));
-        jdbcWriteTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));

@@ -32,10 +32,12 @@ public class BenchmarkService {
         this.numBootstrap = numBootstrap;
     }
 
-    public void bootstrap() throws InterruptedException {
+    public void bootstrap() throws Exception {
+        this.userNotifyDao.flushDB();
         if (this.numBootstrap <= 0) {
             return;
         }
+
         ExecutorService executorService = Executors.newFixedThreadPool(500);
         CountDownLatch latch = new CountDownLatch(this.numBootstrap);
         for (int i = 0; i < Math.min(this.numBootstrap, this.numWriteThread); i++) {
