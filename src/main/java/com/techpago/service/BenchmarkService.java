@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class BenchmarkService {
 
     private static final Logger logger = LoggerFactory.getLogger(BenchmarkService.class);
+    private final ExecutorService executorService = Executors.newCachedThreadPool();
 
     private final IUserNotifyDao userNotifyDao;
     private final int numWriteEpoch;
@@ -269,7 +270,7 @@ public class BenchmarkService {
                                 leftCount.getAndDecrement();
                                 System.out.println("finally: " + leftCount.get());
                             }
-                        });
+                        }, executorService);
                         Thread.sleep(interval);
                     } catch (InterruptedException ignored) {
                     }
@@ -343,7 +344,7 @@ public class BenchmarkService {
                             } finally {
                                 leftCount.getAndDecrement();
                             }
-                        });
+                        }, executorService);
                         Thread.sleep(interval);
                     } catch (InterruptedException ignored) {
                     }
