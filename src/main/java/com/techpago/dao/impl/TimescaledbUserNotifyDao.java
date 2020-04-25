@@ -101,60 +101,62 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
 
-        CompletableFuture.runAsync(() -> {
-            while (isAvailable.get()) {
-                List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
+        for (int i = 0; i < Settings.getInstance().EVENT_LOOP_COUNT; i++) {
+            CompletableFuture.runAsync(() -> {
+                while (isAvailable.get()) {
+                    List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
-                try {
-                    final int BATCH_SIZE = 1000;
-                    int n = queue.drainTo(batch, BATCH_SIZE);
-                    if (n == 0) {
-                        Thread.sleep(50);
-                        continue;
-                    }
+                    try {
+                        final int BATCH_SIZE = 1000;
+                        int n = queue.drainTo(batch, BATCH_SIZE);
+                        if (n == 0) {
+                            Thread.sleep(50);
+                            continue;
+                        }
 
-                    List<Pair<UserNotify, PGobject>> list = new ArrayList<>();
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        PGobject data = new PGobject();
-                        data.setType("jsonb");
-                        data.setValue(Util.OBJECT_MAPPER.writeValueAsString(pair._1.getData()));
+                        List<Pair<UserNotify, PGobject>> list = new ArrayList<>();
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            PGobject data = new PGobject();
+                            data.setType("jsonb");
+                            data.setValue(Util.OBJECT_MAPPER.writeValueAsString(pair._1.getData()));
 
-                        list.add(new Pair<>(pair._1, data));
-                    }
+                            list.add(new Pair<>(pair._1, data));
+                        }
 
-                    String sql = String.format("INSERT INTO %s(timestamp, user_id, notify_id, data)" +
-                            "  VALUES (?, ?, ?, ?)", TABLE_NAME);
+                        String sql = String.format("INSERT INTO %s(timestamp, user_id, notify_id, data)" +
+                                "  VALUES (?, ?, ?, ?)", TABLE_NAME);
 
-                    jdbcTemplate.batchUpdate(sql,
-                            new BatchPreparedStatementSetter() {
-                                public void setValues(PreparedStatement ps, int i) throws SQLException {
-                                    Pair<UserNotify, PGobject> pair = list.get(i);
-                                    UserNotify userNotify = pair._1;
-                                    PGobject data = pair._2;
+                        jdbcTemplate.batchUpdate(sql,
+                                new BatchPreparedStatementSetter() {
+                                    public void setValues(PreparedStatement ps, int i) throws SQLException {
+                                        Pair<UserNotify, PGobject> pair = list.get(i);
+                                        UserNotify userNotify = pair._1;
+                                        PGobject data = pair._2;
 
-                                    ps.setTimestamp(1, new Timestamp(userNotify.getTimestamp()), Calendar.getInstance());
-                                    ps.setString(2, userNotify.getUserID());
-                                    ps.setString(3, userNotify.getNotifyID());
-                                    ps.setObject(4, data);
-                                }
+                                        ps.setTimestamp(1, new Timestamp(userNotify.getTimestamp()), Calendar.getInstance());
+                                        ps.setString(2, userNotify.getUserID());
+                                        ps.setString(3, userNotify.getNotifyID());
+                                        ps.setObject(4, data);
+                                    }
 
-                                public int getBatchSize() {
-                                    return list.size();
-                                }
-                            });
-                } catch (Exception e) {
-                    logger.error("Exception when insert timescaledb row: ", e);
+                                    public int getBatchSize() {
+                                        return list.size();
+                                    }
+                                });
+                    } catch (Exception e) {
+                        logger.error("Exception when insert timescaledb row: ", e);
 
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        pair._2.completeExceptionally(e);
-                    }
-                } finally {
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        pair._2.complete(new Object());
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.completeExceptionally(e);
+                        }
+                    } finally {
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.complete(new Object());
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

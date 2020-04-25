@@ -95,39 +95,41 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
 
-        CompletableFuture.runAsync(() -> {
-            while (isAvailable.get()) {
-                List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
+        for (int i = 0; i < Settings.getInstance().EVENT_LOOP_COUNT; i++) {
+            CompletableFuture.runAsync(() -> {
+                while (isAvailable.get()) {
+                    List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
-                try {
-                    final int BATCH_SIZE = 1000;
-                    int n = queue.drainTo(batch, BATCH_SIZE);
-                    if (n == 0) {
-                        Thread.sleep(50);
-                        continue;
-                    }
+                    try {
+                        final int BATCH_SIZE = 1000;
+                        int n = queue.drainTo(batch, BATCH_SIZE);
+                        if (n == 0) {
+                            Thread.sleep(50);
+                            continue;
+                        }
 
-                    List<Put> puts = new ArrayList<>();
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        puts.add(map2Put(pair._1));
-                    }
+                        List<Put> puts = new ArrayList<>();
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            puts.add(map2Put(pair._1));
+                        }
 
-                    try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
-                        table.put(puts);
-                    }
-                } catch (Exception e) {
-                    logger.error("Exception when insert hbase record: ", e);
+                        try (Table table = connection.getTable(TableName.valueOf(TABLE_NAME))) {
+                            table.put(puts);
+                        }
+                    } catch (Exception e) {
+                        logger.error("Exception when insert hbase record: ", e);
 
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        pair._2.completeExceptionally(e);
-                    }
-                } finally {
-                    for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                        pair._2.complete(new Object());
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.completeExceptionally(e);
+                        }
+                    } finally {
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.complete(new Object());
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

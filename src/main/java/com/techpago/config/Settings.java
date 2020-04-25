@@ -22,6 +22,8 @@ public class Settings {
     private static volatile Settings instance = null;
     private static final Object mutex = new Object();
 
+    public int EVENT_LOOP_COUNT = 20;
+
     public Set<String> HBASE_IP = Collections.singleton("localhost");
     public int HBASE_PORT = 2181;
     public String HBASE_LOCATION = "/hbase-unsecure";
@@ -35,7 +37,7 @@ public class Settings {
     public String TIMESCALEDB_TABLE = "timeseries_tbl";
     public String TIMESCALEDB_USER = "postgres";
     public String TIMESCALEDB_PASSWORD = "";
-    public int TIMESCALEDB_POOL_SIZE = 20;
+    public int TIMESCALEDB_POOL_SIZE = 50;
 
     public static Settings getInstance() {
         Settings result = instance;
