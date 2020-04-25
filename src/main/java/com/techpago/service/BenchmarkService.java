@@ -2,7 +2,6 @@ package com.techpago.service;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.UserNotify;
-import org.apache.commons.lang.time.DurationFormatUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +58,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
+        logger.info("Average time insert: " + (totalTime.get() / numWriteEpoch) + "ms");
     }
 
     public void benchmarkWriteCallback() throws InterruptedException {
@@ -88,7 +87,7 @@ public class BenchmarkService {
         executorService.shutdown();
         executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Average time insert callback: " + DurationFormatUtils.formatDurationHMS(totalTime.get() / numWriteEpoch) + "ms");
+        logger.info("Average time insert callback: " + (totalTime.get() / numWriteEpoch) + "ms");
     }
 
     public void benchmarkFetchAsc() throws InterruptedException {
@@ -155,11 +154,11 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time simultaneous first fetch asc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time simultaneous first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
             logger.info("No fetch more asc");
         } else {
-            logger.info("Avg time simultaneous fetch more asc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+            logger.info("Avg time simultaneous fetch more asc: " + (totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
         }
     }
 
@@ -227,11 +226,11 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time simultaneous first fetch desc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time simultaneous first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
             logger.info("No fetch more desc");
         } else {
-            logger.info("Avg time simultaneous fetch more desc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+            logger.info("Avg time simultaneous fetch more desc: " + (totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
         }
     }
 
@@ -303,11 +302,11 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time RAMP first fetch asc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time RAMP first fetch asc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
             logger.info("No fetch more asc");
         } else {
-            logger.info("Avg time RAMP fetch more asc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+            logger.info("Avg time RAMP fetch more asc: " + (totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
         }
     }
 
@@ -379,11 +378,11 @@ public class BenchmarkService {
         writeExecutorService.shutdown();
         writeExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
 
-        logger.info("Avg time RAMP first fetch desc: " + DurationFormatUtils.formatDurationHMS(totalFirstFetchTime.get() / numFetchEpoch) + "ms");
+        logger.info("Avg time RAMP first fetch desc: " + (totalFirstFetchTime.get() / numFetchEpoch) + "ms");
         if (fetchMoreCount.get() == 0) {
             logger.info("No fetch more desc");
         } else {
-            logger.info("Avg time RAMP fetch more desc: " + DurationFormatUtils.formatDurationHMS(totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
+            logger.info("Avg time RAMP fetch more desc: " + (totalFetchMoreTime.get() / fetchMoreCount.get()) + "ms");
         }
     }
 
