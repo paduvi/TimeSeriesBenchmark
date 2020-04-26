@@ -65,7 +65,15 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                 TABLE_NAME));
 
         // create hypertable if not exists
-        jdbcWriteTemplate.execute(String.format("SELECT create_hypertable('%s', 'timestamp', if_not_exists => TRUE)",
+        jdbcWriteTemplate.execute(String.format(
+                "SELECT create_hypertable('%s', 'timestamp'," +
+                        " if_not_exists => TRUE," +
+                        " chunk_time_interval => INTERVAL '1 day')",
+                TABLE_NAME));
+
+        // Automatic Data Retention
+        jdbcWriteTemplate.execute(String.format(
+                "SELECT add_drop_chunks_policy('%s', INTERVAL '30 days')",
                 TABLE_NAME));
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
