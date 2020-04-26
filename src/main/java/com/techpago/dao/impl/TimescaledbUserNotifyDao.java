@@ -73,7 +73,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
 
         // Automatic Data Retention
         jdbcWriteTemplate.execute(String.format(
-                "SELECT add_drop_chunks_policy('%s', INTERVAL '30 days')",
+                "SELECT add_drop_chunks_policy('%s', INTERVAL '30 days', if_not_exists => TRUE)",
                 TABLE_NAME));
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
