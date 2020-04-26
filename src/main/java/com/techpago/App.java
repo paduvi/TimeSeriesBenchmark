@@ -103,15 +103,23 @@ public class App implements CommandLineRunner {
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
-            benchmarkService.bootstrap();
-            benchmarkService.benchmarkWrite();
 
             benchmarkService.bootstrap();
+            long minTime = System.currentTimeMillis();
+
+            benchmarkService.benchmarkWrite();
+            long maxTime = System.currentTimeMillis();
+
+            if (numWriteEpoch * 100 > numBootstrap) {
+                benchmarkService.bootstrap();
+            }
             benchmarkService.benchmarkWriteCallback();
 
-            long minTime = System.currentTimeMillis();
-            benchmarkService.bootstrap();
-            long maxTime = System.currentTimeMillis();
+            if (numWriteEpoch * 100 > numBootstrap) {
+                minTime = System.currentTimeMillis();
+                benchmarkService.bootstrap();
+                maxTime = System.currentTimeMillis();
+            }
 
             benchmarkService.benchmarkFetchAsc(minTime, maxTime);
             benchmarkService.benchmarkFetchDesc(minTime, maxTime);
