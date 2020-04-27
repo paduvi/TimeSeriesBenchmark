@@ -6,11 +6,11 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
 
 @SpringBootApplication
 public class App implements CommandLineRunner {
@@ -18,12 +18,7 @@ public class App implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(App.class);
 
     @Autowired
-    @Qualifier("HBaseUserNotifyDao")
-    private IUserNotifyDao hBaseUserNotifyDao;
-
-    @Autowired
-    @Qualifier("TimescaledbUserNotifyDao")
-    private IUserNotifyDao timescaledbUserNotifyDao;
+    private ApplicationContext context;
 
     public static void main(String[] args) {
         WebApplicationType webType = WebApplicationType.NONE;
@@ -37,7 +32,7 @@ public class App implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         Options options = new Options();
 
         Option modeOpt = new Option("m", "mode", true, "mode option");
@@ -80,6 +75,7 @@ public class App implements CommandLineRunner {
             BenchmarkService benchmarkService;
             switch (mode) {
                 case 1: // benchmark hbase
+                    IUserNotifyDao hBaseUserNotifyDao = context.getBean("HBaseUserNotifyDao", IUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             hBaseUserNotifyDao,
                             numWriteEpoch,
@@ -90,6 +86,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 2: // benchmark timescaledb
+                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean("TimescaledbUserNotifyDao", IUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             timescaledbUserNotifyDao,
                             numWriteEpoch,
