@@ -58,10 +58,17 @@
             </exclusions>
         </dependency>
 
-        <!-- postgresql -->
+        <!-- Postgresql -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+        </dependency>
+
+        <!-- InfluxDB -->
+        <dependency>
+            <groupId>com.influxdb</groupId>
+            <artifactId>influxdb-client-reactive</artifactId>
+            <version>1.7.0</version>
         </dependency>
 
         <!-- Spring -->
