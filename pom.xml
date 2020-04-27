@@ -17,6 +17,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <hbase.version>1.4.13</hbase.version>
+        <influxdb.version>1.7.0</influxdb.version>
         <logback.contrib.version>0.1.5</logback.contrib.version>
     </properties>
 
@@ -67,8 +68,20 @@
         <!-- InfluxDB -->
         <dependency>
             <groupId>com.influxdb</groupId>
+            <artifactId>influxdb-client-java</artifactId>
+            <version>${influxdb.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.influxdb</groupId>
             <artifactId>influxdb-client-reactive</artifactId>
-            <version>1.7.0</version>
+            <version>${influxdb.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.influxdb</groupId>
+            <artifactId>flux-dsl</artifactId>
+            <version>${influxdb.version}</version>
         </dependency>
 
         <!-- Spring -->

@@ -86,7 +86,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 2: // benchmark timescaledb
-                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean("TimescaledbUserNotifyDao", IUserNotifyDao.class);
+                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean("TimescaleDbUserNotifyDao", IUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             timescaledbUserNotifyDao,
                             numWriteEpoch,

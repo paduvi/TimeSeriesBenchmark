@@ -28,7 +28,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +44,6 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final static String TABLE_NAME = Settings.getInstance().HBASE_TABLE;
-    private final static Duration TTL = Duration.ofDays(3);
     private final static byte[] FAMILY = Bytes.toBytes("cf");
 
     private final static byte[] ID_COLUMN = Bytes.toBytes("notify_id");
@@ -114,7 +112,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
                 //creating column family descriptor
                 HColumnDescriptor family = new HColumnDescriptor(FAMILY)
-                        .setTimeToLive((int) TTL.getSeconds());
+                        .setTimeToLive(Settings.getInstance().TTL_IN_SECONDS);
                 if (Settings.getInstance().HBASE_COMPRESSION) {
                     family.setCompressionType(Compression.Algorithm.SNAPPY);
                 }
@@ -203,7 +201,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         if (fromTime != null) {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
         } else {
-            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - TTL.toMillis())));
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - Settings.getInstance().TTL_IN_SECONDS * 1000)));
         }
 
         try (Table table = readConnection.getTable(TableName.valueOf(TABLE_NAME))) {

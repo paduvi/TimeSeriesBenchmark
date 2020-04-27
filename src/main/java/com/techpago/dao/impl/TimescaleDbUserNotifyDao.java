@@ -33,10 +33,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Component("TimescaledbUserNotifyDao")
-public class TimescaledbUserNotifyDao implements IUserNotifyDao {
+@Component("TimescaleDbUserNotifyDao")
+public class TimescaleDbUserNotifyDao implements IUserNotifyDao {
 
-    private static final Logger logger = LoggerFactory.getLogger(TimescaledbUserNotifyDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(TimescaleDbUserNotifyDao.class);
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final JdbcTemplate jdbcWriteTemplate;
@@ -47,7 +47,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
     @Autowired
     private IValidator<UserNotify> validator;
 
-    public TimescaledbUserNotifyDao() {
+    public TimescaleDbUserNotifyDao() {
         jdbcWriteTemplate = createJdbcTemplate();
         jdbcReadTemplate = createJdbcTemplate();
     }
