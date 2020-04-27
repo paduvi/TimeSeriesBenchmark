@@ -2,6 +2,7 @@ package com.techpago.dao.impl;
 
 import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
+import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.BucketRetentionRules;
 import com.influxdb.client.domain.Organization;
 import com.techpago.config.Settings;
@@ -29,25 +30,29 @@ public class InfluxDbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() {
-        String orgID = null;
-        for (Organization organization : influxDBClient.getOrganizationsApi().findOrganizations()) {
-            if (organization.getName().equals(setting.INFLUXDB_ORG)) {
-                orgID = organization.getId();
-                break;
+        // Delete bucket
+        Bucket bucket = influxDBClient.getBucketsApi().findBucketByName(setting.INFLUXDB_BUCKET);
+        String orgId = null;
+        if (bucket != null) {
+            orgId = bucket.getOrgID();
+            influxDBClient.getBucketsApi().deleteBucket(bucket);
+        } else {
+            for (Organization organization : influxDBClient.getOrganizationsApi().findOrganizations()) {
+                if (organization.getName().equals(setting.INFLUXDB_ORG)) {
+                    orgId = organization.getId();
+                    break;
+                }
+            }
+            if (orgId == null) {
+                throw new RuntimeException("Not found org: " + setting.INFLUXDB_ORG);
             }
         }
-        if (orgID == null) {
-            throw new RuntimeException("Not found org: " + setting.INFLUXDB_ORG);
-        }
-        influxDBClient.getBucketsApi().deleteBucket(setting.INFLUXDB_BUCKET);
 
-        //
-        // Create bucket "iot_bucket" with data retention set to 3,600 seconds
-        //
+        // Create bucket again with retention policy
         BucketRetentionRules retention = new BucketRetentionRules();
         retention.setEverySeconds(setting.TTL_IN_SECONDS);
 
-        influxDBClient.getBucketsApi().createBucket(setting.INFLUXDB_BUCKET, retention, orgID);
+        influxDBClient.getBucketsApi().createBucket(setting.INFLUXDB_BUCKET, retention, orgId);
     }
 
     @Override
