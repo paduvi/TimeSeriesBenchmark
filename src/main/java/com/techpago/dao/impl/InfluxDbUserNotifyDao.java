@@ -4,6 +4,7 @@ import com.influxdb.client.InfluxDBClient;
 import com.influxdb.client.InfluxDBClientFactory;
 import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.BucketRetentionRules;
+import com.influxdb.client.domain.DeletePredicateRequest;
 import com.influxdb.client.domain.Organization;
 import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
@@ -30,13 +31,10 @@ public class InfluxDbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() {
-        // Delete bucket
+        // Create bucket if not exists with retention policy
         Bucket bucket = influxDBClient.getBucketsApi().findBucketByName(setting.INFLUXDB_BUCKET);
-        String orgId = null;
-        if (bucket != null) {
-            orgId = bucket.getOrgID();
-            influxDBClient.getBucketsApi().deleteBucket(bucket);
-        } else {
+        if (bucket == null) {
+            String orgId = null;
             for (Organization organization : influxDBClient.getOrganizationsApi().findOrganizations()) {
                 if (organization.getName().equals(setting.INFLUXDB_ORG)) {
                     orgId = organization.getId();
@@ -46,13 +44,17 @@ public class InfluxDbUserNotifyDao implements IUserNotifyDao {
             if (orgId == null) {
                 throw new RuntimeException("Not found org: " + setting.INFLUXDB_ORG);
             }
+
+            BucketRetentionRules retention = new BucketRetentionRules();
+            retention.setEverySeconds(setting.TTL_IN_SECONDS);
+
+            influxDBClient.getBucketsApi().createBucket(setting.INFLUXDB_BUCKET, retention, orgId);
         }
 
-        // Create bucket again with retention policy
-        BucketRetentionRules retention = new BucketRetentionRules();
-        retention.setEverySeconds(setting.TTL_IN_SECONDS);
+        DeletePredicateRequest deletePredicateRequest = new DeletePredicateRequest();
+        deletePredicateRequest.setPredicate("_measurement=\"" + setting.INFLUXDB_MEASUREMENT + "\"");
 
-        influxDBClient.getBucketsApi().createBucket(setting.INFLUXDB_BUCKET, retention, orgId);
+        influxDBClient.getDeleteApi().delete(deletePredicateRequest, setting.INFLUXDB_BUCKET, setting.INFLUXDB_ORG);
     }
 
     @Override
