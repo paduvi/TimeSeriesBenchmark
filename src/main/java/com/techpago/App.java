@@ -9,6 +9,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.AutowireCapableBeanFactory;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -75,10 +76,12 @@ public class App implements CommandLineRunner {
             int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
             int numBootstrap = Integer.parseInt(cmd.getOptionValue(numBootstrapThreadOpt.getLongOpt(), "0"));
 
+            AutowireCapableBeanFactory factory = context.getAutowireCapableBeanFactory();
+
             BenchmarkService benchmarkService;
             switch (mode) {
                 case 1: // benchmark hbase
-                    IUserNotifyDao hBaseUserNotifyDao = context.getBean(HBaseUserNotifyDao.class);
+                    IUserNotifyDao hBaseUserNotifyDao = factory.createBean(HBaseUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             hBaseUserNotifyDao,
                             numWriteEpoch,
@@ -89,7 +92,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 2: // benchmark timescaledb
-                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean(TimescaleDbUserNotifyDao.class);
+                    IUserNotifyDao timescaledbUserNotifyDao = factory.createBean(TimescaleDbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             timescaledbUserNotifyDao,
                             numWriteEpoch,
@@ -100,7 +103,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 3: // benchmark timescaledb
-                    IUserNotifyDao influxDbUserNotifyDao = context.getBean(InfluxDbUserNotifyDao.class);
+                    IUserNotifyDao influxDbUserNotifyDao = factory.createBean(InfluxDbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             influxDbUserNotifyDao,
                             numWriteEpoch,
