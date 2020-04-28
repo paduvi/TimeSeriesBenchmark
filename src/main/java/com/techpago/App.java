@@ -25,6 +25,10 @@ public class App implements CommandLineRunner {
     @Qualifier("TimescaledbUserNotifyDao")
     private IUserNotifyDao timescaledbUserNotifyDao;
 
+    @Autowired
+    @Qualifier("KairosdbUserNotifyDao")
+    private IUserNotifyDao kairosdbUserNotifyDao;
+
     public static void main(String[] args) {
         WebApplicationType webType = WebApplicationType.NONE;
 
@@ -91,6 +95,15 @@ public class App implements CommandLineRunner {
                             numFetchEpoch,
                             numFetchThread
                     );
+                    break;
+                case 3: // benmarl kairosdb
+                    benchmarkService = new BenchmarkService(
+                            kairosdbUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread
+                            );
                     break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + mode);

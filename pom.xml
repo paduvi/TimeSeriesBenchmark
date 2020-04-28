@@ -63,7 +63,18 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
-
+        <!-- kairosdb -->
+        <dependency>
+            <groupId>org.kairosdb</groupId>
+            <artifactId>kairosdb</artifactId>
+            <version>1.2.1-1</version>
+        </dependency>
+        <!-- opentsdb -->
+        <dependency>
+            <groupId>net.opentsdb</groupId>
+            <artifactId>opentsdb</artifactId>
+            <version>2.4.0</version>
+        </dependency>
         <!-- Spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -173,7 +184,6 @@
             <groupId>com.fasterxml.jackson.jaxrs</groupId>
             <artifactId>jackson-jaxrs-json-provider</artifactId>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -181,6 +191,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>2.1.0.RELEASE</version>
                 <dependencies>
                     <dependency>
                         <groupId>org.springframework.boot.experimental</groupId>
