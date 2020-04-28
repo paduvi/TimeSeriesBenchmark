@@ -26,7 +26,6 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-@Component("InfluxDbUserNotifyDao")
 public class InfluxDbUserNotifyDao implements IUserNotifyDao {
 
     private final Settings setting = Settings.getInstance();

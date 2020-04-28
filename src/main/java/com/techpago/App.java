@@ -1,6 +1,9 @@
 package com.techpago;
 
 import com.techpago.dao.IUserNotifyDao;
+import com.techpago.dao.impl.HBaseUserNotifyDao;
+import com.techpago.dao.impl.InfluxDbUserNotifyDao;
+import com.techpago.dao.impl.TimescaleDbUserNotifyDao;
 import com.techpago.service.BenchmarkService;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
@@ -75,7 +78,7 @@ public class App implements CommandLineRunner {
             BenchmarkService benchmarkService;
             switch (mode) {
                 case 1: // benchmark hbase
-                    IUserNotifyDao hBaseUserNotifyDao = context.getBean("HBaseUserNotifyDao", IUserNotifyDao.class);
+                    IUserNotifyDao hBaseUserNotifyDao = context.getBean(HBaseUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             hBaseUserNotifyDao,
                             numWriteEpoch,
@@ -86,7 +89,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 2: // benchmark timescaledb
-                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean("TimescaleDbUserNotifyDao", IUserNotifyDao.class);
+                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean(TimescaleDbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             timescaledbUserNotifyDao,
                             numWriteEpoch,
@@ -97,7 +100,7 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 3: // benchmark timescaledb
-                    IUserNotifyDao influxDbUserNotifyDao = context.getBean("InfluxDbUserNotifyDao", IUserNotifyDao.class);
+                    IUserNotifyDao influxDbUserNotifyDao = context.getBean(InfluxDbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             influxDbUserNotifyDao,
                             numWriteEpoch,

@@ -33,7 +33,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Component("TimescaleDbUserNotifyDao")
 public class TimescaleDbUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(TimescaleDbUserNotifyDao.class);
