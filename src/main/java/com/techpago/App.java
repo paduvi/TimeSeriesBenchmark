@@ -96,6 +96,17 @@ public class App implements CommandLineRunner {
                             numBootstrap
                     );
                     break;
+                case 3: // benchmark timescaledb
+                    IUserNotifyDao influxDbUserNotifyDao = context.getBean("InfluxDbUserNotifyDao", IUserNotifyDao.class);
+                    benchmarkService = new BenchmarkService(
+                            influxDbUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread,
+                            numBootstrap
+                    );
+                    break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
