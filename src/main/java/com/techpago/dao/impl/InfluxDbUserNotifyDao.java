@@ -20,11 +20,11 @@ import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.UserNotify;
 import com.techpago.utility.Util;
-import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class InfluxDbUserNotifyDao implements IUserNotifyDao {
 
@@ -142,8 +142,7 @@ public class InfluxDbUserNotifyDao implements IUserNotifyDao {
             }
         }
 
-        results.sort((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
-        return results;
+        return results.stream().sorted((o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp())).limit(20).collect(Collectors.toList());
     }
 
     @Override
@@ -186,8 +185,7 @@ public class InfluxDbUserNotifyDao implements IUserNotifyDao {
             }
         }
 
-        results.sort(Comparator.comparingLong(UserNotify::getTimestamp));
-        return results;
+        return results.stream().sorted(Comparator.comparingLong(UserNotify::getTimestamp)).limit(20).collect(Collectors.toList());
     }
 
 }
