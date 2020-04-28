@@ -28,7 +28,6 @@ import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +44,6 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final static String TABLE_NAME = Settings.getInstance().HBASE_TABLE;
-    private final static Duration TTL = Duration.ofDays(3);
     private final static byte[] FAMILY = Bytes.toBytes("cf");
 
     private final static byte[] ID_COLUMN = Bytes.toBytes("notify_id");
@@ -63,28 +61,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     @PostConstruct
     void init() throws IOException {
-        try (Admin admin = writeConnection.getAdmin()) {
-            TableName tableName = TableName.valueOf(TABLE_NAME);
-            if (admin.tableExists(tableName)) {
-                admin.disableTable(tableName);
-                admin.deleteTable(tableName);
-            }
-
-            //creating table descriptor
-            HTableDescriptor table = new HTableDescriptor(tableName);
-
-            //creating column family descriptor
-            HColumnDescriptor family = new HColumnDescriptor(FAMILY)
-                    .setTimeToLive((int) TTL.getSeconds());
-            if (Settings.getInstance().HBASE_COMPRESSION) {
-                family.setCompressionType(Compression.Algorithm.SNAPPY);
-            }
-
-            //adding column family to HTable
-            table.addFamily(family);
-
-            admin.createTable(table);
-        }
+        createDB();
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
@@ -95,7 +72,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                     List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
                     try {
-                        final int BATCH_SIZE = 1000;
+                        final int BATCH_SIZE = 100;
                         int n = queue.drainTo(batch, BATCH_SIZE);
                         if (n == 0) {
                             Thread.sleep(50);
@@ -124,6 +101,40 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
                 }
             });
         }
+    }
+
+    private void createDB() throws IOException {
+        try (Admin admin = writeConnection.getAdmin()) {
+            TableName tableName = TableName.valueOf(TABLE_NAME);
+            if (!admin.tableExists(tableName)) {
+                //creating table descriptor
+                HTableDescriptor table = new HTableDescriptor(tableName);
+
+                //creating column family descriptor
+                HColumnDescriptor family = new HColumnDescriptor(FAMILY)
+                        .setTimeToLive(Settings.getInstance().TTL_IN_SECONDS);
+                if (Settings.getInstance().HBASE_COMPRESSION) {
+                    family.setCompressionType(Compression.Algorithm.SNAPPY);
+                }
+
+                //adding column family to HTable
+                table.addFamily(family);
+
+                admin.createTable(table);
+            }
+        }
+    }
+
+    @Override
+    public void flushDB() throws Exception {
+        try (Admin admin = writeConnection.getAdmin()) {
+            TableName tableName = TableName.valueOf(TABLE_NAME);
+            if (admin.tableExists(tableName)) {
+                admin.disableTable(tableName);
+                admin.deleteTable(tableName);
+            }
+        }
+        createDB();
     }
 
     @Override
@@ -190,7 +201,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
         if (fromTime != null) {
             scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(fromTime)), false);
         } else {
-            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - TTL.toMillis())));
+            scan.withStartRow(ArrayUtils.addAll(prefix, Bytes.toBytes(System.currentTimeMillis() - Settings.getInstance().TTL_IN_SECONDS * 1000)));
         }
 
         try (Table table = readConnection.getTable(TableName.valueOf(TABLE_NAME))) {

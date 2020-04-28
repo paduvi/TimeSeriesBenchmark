@@ -6,11 +6,11 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
 
 @SpringBootApplication
 public class App implements CommandLineRunner {
@@ -18,12 +18,7 @@ public class App implements CommandLineRunner {
     private static final Logger logger = LoggerFactory.getLogger(App.class);
 
     @Autowired
-    @Qualifier("HBaseUserNotifyDao")
-    private IUserNotifyDao hBaseUserNotifyDao;
-
-    @Autowired
-    @Qualifier("TimescaledbUserNotifyDao")
-    private IUserNotifyDao timescaledbUserNotifyDao;
+    private ApplicationContext context;
 
     @Autowired
     @Qualifier("KairosdbUserNotifyDao")
@@ -41,7 +36,7 @@ public class App implements CommandLineRunner {
     }
 
     @Override
-    public void run(String... args) throws Exception {
+    public void run(String... args) {
         Options options = new Options();
 
         Option modeOpt = new Option("m", "mode", true, "mode option");
@@ -64,6 +59,10 @@ public class App implements CommandLineRunner {
         numFetchThreadOpt.setRequired(false);
         options.addOption(numFetchThreadOpt);
 
+        Option numBootstrapThreadOpt = new Option("b", "bootstrap", true, "bootstrap option");
+        numBootstrapThreadOpt.setRequired(false);
+        options.addOption(numBootstrapThreadOpt);
+
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
 
@@ -75,25 +74,30 @@ public class App implements CommandLineRunner {
             int numWriteThread = Integer.parseInt(cmd.getOptionValue(numWriteThreadOpt.getLongOpt(), "1"));
             int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));
             int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
+            int numBootstrap = Integer.parseInt(cmd.getOptionValue(numBootstrapThreadOpt.getLongOpt(), "0"));
 
             BenchmarkService benchmarkService;
             switch (mode) {
                 case 1: // benchmark hbase
+                    IUserNotifyDao hBaseUserNotifyDao = context.getBean("HBaseUserNotifyDao", IUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             hBaseUserNotifyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
-                            numFetchThread
+                            numFetchThread,
+                            numBootstrap
                     );
                     break;
                 case 2: // benchmark timescaledb
+                    IUserNotifyDao timescaledbUserNotifyDao = context.getBean("TimescaleDbUserNotifyDao", IUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             timescaledbUserNotifyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
-                            numFetchThread
+                            numFetchThread,
+                            numBootstrap
                     );
                     break;
                 case 3: // benmarl kairosdb
@@ -109,14 +113,29 @@ public class App implements CommandLineRunner {
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
+
+            benchmarkService.bootstrap();
+            long minTime = System.currentTimeMillis();
+
             benchmarkService.benchmarkWrite();
+            long maxTime = System.currentTimeMillis();
+
+            if (numWriteEpoch * 100 > numBootstrap) {
+                benchmarkService.bootstrap();
+            }
             benchmarkService.benchmarkWriteCallback();
 
-            benchmarkService.benchmarkFetchAsc();
-            benchmarkService.benchmarkFetchDesc();
+            if (numWriteEpoch * 100 > numBootstrap) {
+                minTime = System.currentTimeMillis();
+                benchmarkService.bootstrap();
+                maxTime = System.currentTimeMillis();
+            }
 
-            benchmarkService.benchmarkFetchAscRampUp(10);
-            benchmarkService.benchmarkFetchDescRampUp(10);
+            benchmarkService.benchmarkFetchAsc(minTime, maxTime);
+            benchmarkService.benchmarkFetchDesc(minTime, maxTime);
+
+            benchmarkService.benchmarkFetchAscRampUp(10, minTime, maxTime);
+            benchmarkService.benchmarkFetchDescRampUp(10, minTime, maxTime);
 
             System.exit(0);
         } catch (ParseException e) {

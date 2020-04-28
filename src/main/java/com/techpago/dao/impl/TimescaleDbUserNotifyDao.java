@@ -33,10 +33,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Component("TimescaledbUserNotifyDao")
-public class TimescaledbUserNotifyDao implements IUserNotifyDao {
+@Component("TimescaleDbUserNotifyDao")
+public class TimescaleDbUserNotifyDao implements IUserNotifyDao {
 
-    private static final Logger logger = LoggerFactory.getLogger(TimescaledbUserNotifyDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(TimescaleDbUserNotifyDao.class);
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     private final JdbcTemplate jdbcWriteTemplate;
@@ -47,7 +47,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
     @Autowired
     private IValidator<UserNotify> validator;
 
-    public TimescaledbUserNotifyDao() {
+    public TimescaleDbUserNotifyDao() {
         jdbcWriteTemplate = createJdbcTemplate();
         jdbcReadTemplate = createJdbcTemplate();
     }
@@ -65,9 +65,16 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                 TABLE_NAME));
 
         // create hypertable if not exists
-        jdbcWriteTemplate.execute(String.format("SELECT create_hypertable('%s', 'timestamp', if_not_exists => TRUE)",
+        jdbcWriteTemplate.execute(String.format(
+                "SELECT create_hypertable('%s', 'timestamp'," +
+                        " if_not_exists => TRUE," +
+                        " chunk_time_interval => INTERVAL '1 day')",
                 TABLE_NAME));
-        jdbcWriteTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
+
+        // Automatic Data Retention
+        jdbcWriteTemplate.execute(String.format(
+                "SELECT add_drop_chunks_policy('%s', INTERVAL '30 days', if_not_exists => TRUE)",
+                TABLE_NAME));
 
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
@@ -78,7 +85,7 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                     List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
                     try {
-                        final int BATCH_SIZE = 1000;
+                        final int BATCH_SIZE = 100;
                         int n = queue.drainTo(batch, BATCH_SIZE);
                         if (n == 0) {
                             Thread.sleep(50);
@@ -128,6 +135,11 @@ public class TimescaledbUserNotifyDao implements IUserNotifyDao {
                 }
             });
         }
+    }
+
+    @Override
+    public void flushDB() {
+        jdbcWriteTemplate.execute(String.format("TRUNCATE TABLE %s", TABLE_NAME));
     }
 
     @Override

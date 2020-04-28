@@ -7,6 +7,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface IUserNotifyDao {
 
+    void flushDB() throws Exception;
+
     void insert(UserNotify userNotify) throws Exception;
 
     CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception;

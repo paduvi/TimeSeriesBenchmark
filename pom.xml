@@ -17,6 +17,7 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
         <hbase.version>1.4.13</hbase.version>
+        <influxdb.version>1.7.0</influxdb.version>
         <logback.contrib.version>0.1.5</logback.contrib.version>
     </properties>
 
@@ -58,11 +59,12 @@
             </exclusions>
         </dependency>
 
-        <!-- postgresql -->
+        <!-- Postgresql -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
         </dependency>
+
         <!-- kairosdb -->
         <dependency>
             <groupId>org.kairosdb</groupId>
@@ -75,6 +77,26 @@
             <artifactId>opentsdb</artifactId>
             <version>2.4.0</version>
         </dependency>
+
+        <!-- InfluxDB -->
+        <dependency>
+            <groupId>com.influxdb</groupId>
+            <artifactId>influxdb-client-java</artifactId>
+            <version>${influxdb.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.influxdb</groupId>
+            <artifactId>influxdb-client-reactive</artifactId>
+            <version>${influxdb.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.influxdb</groupId>
+            <artifactId>flux-dsl</artifactId>
+            <version>${influxdb.version}</version>
+        </dependency>
+
         <!-- Spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

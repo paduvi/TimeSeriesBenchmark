@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 
@@ -22,7 +23,8 @@ public class Settings {
     private static volatile Settings instance = null;
     private static final Object mutex = new Object();
 
-    public int EVENT_LOOP_COUNT = 20;
+    public int EVENT_LOOP_COUNT = 10;
+    public int TTL_IN_SECONDS = (int) Duration.ofDays(3).getSeconds();
 
     public Set<String> HBASE_IP = Collections.singleton("localhost");
     public int HBASE_PORT = 2181;
@@ -38,6 +40,13 @@ public class Settings {
     public String TIMESCALEDB_USER = "postgres";
     public String TIMESCALEDB_PASSWORD = "";
     public int TIMESCALEDB_POOL_SIZE = 50;
+
+    public String INFLUXDB_IP = "localhost";
+    public int INFLUXDB_PORT = 9999;
+    public String INFLUXDB_ORG = "my-org";
+    public String INFLUXDB_BUCKET = "my-bucket";
+    public String INFLUXDB_TOKEN = "my-token";
+    public String INFLUXDB_MEASUREMENT = "timeseries_tbl";
 
     public static Settings getInstance() {
         Settings result = instance;
