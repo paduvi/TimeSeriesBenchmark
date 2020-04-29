@@ -2,38 +2,35 @@ package com.techpago.dao.impl;
 
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import com.sun.xml.internal.ws.api.config.management.policy.ManagementAssertion;
 import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
+import com.techpago.model.Pair;
 import com.techpago.model.UserNotify;
-import com.techpago.utility.Util;
 import com.techpago.validator.IValidator;
-import jdk.nashorn.internal.ir.ObjectNode;
 import net.opentsdb.core.TSDB;
-import net.opentsdb.tools.OpenTSDBMain;
-
 import net.opentsdb.uid.NoSuchUniqueName;
+import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import net.opentsdb.uid.UniqueId.UniqueIdType;
+import java.util.concurrent.LinkedBlockingQueue;
 
 @Component
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
+
+    private final TSDB tsdb;
+    private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
+
     @Autowired
     private IValidator<UserNotify> validator;
 
-    private final TSDB tsdb;
-
-    public OpentsdbUserNotifyDao(){
+    public OpentsdbUserNotifyDao() {
         Settings setting = Settings.getInstance();
         Config config = new Config();
 
@@ -44,31 +41,34 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
         config.overrideConfig("tsd.storage.hbase.data_table", "tsdb");//Name of the HBase table where data points are stored
         config.overrideConfig("tsd.storage.hbase.uid_table", "tsdb-uid");//Name of the HBase table where UID information is stored
-        config.overrideConfig("tsd.storage.hbase.zk_quorum",  String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
+        config.overrideConfig("tsd.storage.hbase.zk_quorum", String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
         config.overrideConfig("tsd.storage.fix_duplicates", "true");
         this.tsdb = new TSDB(config);
     }
 
     @Override
     public void insert(UserNotify userNotify) throws Exception {
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        validator.validate(userNotify);
         // Write a number of data points at 30 second intervals. Each write will
         // return a deferred (similar to a Java Future or JS Promise) that will
         // be called on completion with either a "null" value on success or an
         // exception.
-        String metricName="";
-        Long value = null;
-        Map<String,String> tags = new HashMap<>();
-        tags.put( "user_id", userNotify.getUserID());
+        String metricName = "";
+
+        long value = userNotify.getTimestamp();
+        Map<String, String> tags = new HashMap<>();
+        tags.put("user_id", userNotify.getUserID());
         tags.put("notify_id", userNotify.getNotifyID());
 
-        Deferred<Object> deferred = tsdb.addPoint(metricName, userNotify.getTimestamp(),value, tags);
-        deferred.addErrback(new OpentsdbUserNotifyDao().new errBack());
-//deferred.addCallbacks(new OpentsdbUserNotifyDao().new succBack());
-        tsdb.shutdown().join();
-
+        Deferred<Object> deferred = tsdb
+                .addPoint(metricName, userNotify.getTimestamp(), value, tags)
+                .addBoth(new BothCallBack(future));
+        deferred.join();
+        future.get();
     }
 
-//    private void createDB(TSDB tsdb) throws IOException{
+    //    private void createDB(TSDB tsdb) throws IOException{
 //        // Declare new metric
 //        String metricName = "my.tsdb.test.metric";
 //        // First check to see it doesn't already exist
@@ -97,9 +97,11 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //    }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-return null;
+        validator.validate(userNotify);
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        queue.add(new Pair<>(userNotify, future));
+        return future;
     }
-
 
 
     @Override
@@ -135,20 +137,24 @@ return null;
             byteMetricUID = tsdb.assignUid("metric", metricName);
         }
     }
-    // This is an optional errorback to handle when there is a failure.
-    private class errBack implements Callback<String, Exception> {
-        public String call(final Exception e) throws Exception {
-            String message = ">>>>>>>>>>>Failure!>>>>>>>>>>>";
-            System.err.println(message + " " + e.getMessage());
-            e.printStackTrace();
-            return message;
-        }
-    };
 
-    class succBack implements Callback<Object, ArrayList<Object>> {
-        public Object call(final ArrayList<Object> results) {
-            System.out.println("Successfully wrote " + results.size() + " data points");
-            return null;
+    private static class BothCallBack implements Callback<Object, Object> {
+        private final CompletableFuture<Object> future;
+
+        public BothCallBack(CompletableFuture<Object> future) {
+            this.future = future;
         }
-    };
+
+        @Override
+        public Object call(Object arg) {
+            if (arg instanceof Exception) {
+                Exception e = (Exception) arg;
+                future.completeExceptionally(e);
+                return e.getMessage();
+            }
+            future.complete(arg);
+            return arg;
+        }
+    }
+
 }
