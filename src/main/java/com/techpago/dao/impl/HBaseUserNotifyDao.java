@@ -24,7 +24,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
@@ -35,7 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-@Component("HBaseUserNotifyDao")
 public class HBaseUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(HBaseUserNotifyDao.class);
