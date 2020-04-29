@@ -24,9 +24,9 @@ public class App implements CommandLineRunner {
     @Autowired
     private ApplicationContext context;
 
-    @Autowired
-    @Qualifier("KairosdbUserNotifyDao")
-    private IUserNotifyDao kairosdbUserNotifyDao;
+//    @Autowired
+//    @Qualifier("KairosdbUserNotifyDao")
+//    private IUserNotifyDao kairosdbUserNotifyDao;
 
     public static void main(String[] args) {
         WebApplicationType webType = WebApplicationType.NONE;

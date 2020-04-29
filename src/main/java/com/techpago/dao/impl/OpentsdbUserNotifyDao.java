@@ -1,5 +1,6 @@
 package com.techpago.dao.impl;
 
+import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import com.sun.xml.internal.ws.api.config.management.policy.ManagementAssertion;
 import com.techpago.config.Settings;
@@ -30,6 +31,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     @Autowired
     private IValidator<UserNotify> validator;
 
+    private final TSDB tsdb;
+
     public OpentsdbUserNotifyDao(){
         TSDB tsdbWrite = createTsdb();
         TSDB tsdbRead = createTsdb();
@@ -40,87 +43,73 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     }
     @Override
     public void insert(UserNotify userNotify) throws Exception {
-        if (!validator.validate(userNotify)) {
-            throw new RuntimeException("Invalid data");
-        }
-
-        // Make a single datum
-        long timestamp = userNotify.getTimestamp();
-        String value = Util.OBJECT_MAPPER.writeValueAsString(userNotify.getData());
-        // Make key-val
-        Map<String, String> tags = new HashMap<String, String>(1);
-        tags.put("script", "example1");
-
-
-
         // Write a number of data points at 30 second intervals. Each write will
         // return a deferred (similar to a Java Future or JS Promise) that will
         // be called on completion with either a "null" value on success or an
         // exception.
-        int n = 100;
-        ArrayList<Deferred<Object>> deferreds = new ArrayList<Deferred<Object>>(n);
-        for (int i = 0; i < n; i++) {
-            Deferred<Object> deferred = tsdb
-                    .addPoint(metricName, timestamp, value + i, tags);
-            deferreds.add(deferred);
-            timestamp += 30;
-        }
+        String metricName="";
+        Long value = null;
+        Map<String,String> tags = new HashMap<>();
+        tags.put( "user_id", userNotify.getUserID());
+        tags.put("notify_id", userNotify.getNotifyID());
 
-        // Add the callbacks to the deferred object. (They might have already
-        // returned, btw)
-        // This will cause the calling thread to wait until the add has completed.
-        System.out.println("Waiting for deferred result to return...");
-        Deferred.groupInOrder(deferreds)
-                .addErrback(new AddDataExample().new errBack())
-                .addCallback(new AddDataExample().new succBack())
-                // Block the thread until the deferred returns it's result.
-                .join();
-        // Alternatively you can add another callback here or use a join with a
-        // timeout argument.
-
-        // End timer.
-        long elapsedTime1 = System.currentTimeMillis() - startTime1;
-        System.out.println("\nAdding " + n + " points took: " + elapsedTime1
-                + " milliseconds.\n");
-
-        // Gracefully shutdown connection to TSDB. This is CRITICAL as it will
-        // flush any pending operations to HBase.
+        Deferred<Object> deferred = tsdb.addPoint(metricName, userNotify.getTimestamp(),value, tags);
+        deferred.addErrback(new OpentsdbUserNotifyDao().new errBack());
+//deferred.addCallbacks(new OpentsdbUserNotifyDao().new succBack());
         tsdb.shutdown().join();
+
     }
 
-    private void createDB(TSDB tsdb) throws IOException{
-        // Declare new metric
-        String metricName = "my.tsdb.test.metric";
-        // First check to see it doesn't already exist
-        byte[] byteMetricUID; // we don't actually need this for the first
-        // .addPoint() call below.
-        // TODO: Ideally we could just call a not-yet-implemented tsdb.uIdExists()
-        // function.
-        // Note, however, that this is optional. If auto metric is enabled
-        // (tsd.core.auto_create_metrics), the UID will be assigned in call to
-        // addPoint().
-        try {
-            byteMetricUID = tsdb.getUID(UniqueIdType.METRIC, metricName);
-        } catch (IllegalArgumentException iae) {
-            System.out.println("Metric name not valid.");
-            iae.printStackTrace();
-            System.exit(1);
-        } catch (NoSuchUniqueName nsune) {
-            // If not, great. Create it.
-            byteMetricUID = tsdb.assignUid("metric", metricName);
-        }
-
-        // Make a single datum
-        long timestamp = System.currentTimeMillis() / 1000;
-        long value = 314159;
-        // Make key-val
-        Map<String, String> tags = new HashMap<String, String>(1);
-        tags.put("script", "example1");
-    }
+//    private void createDB(TSDB tsdb) throws IOException{
+//        // Declare new metric
+//        String metricName = "my.tsdb.test.metric";
+//        // First check to see it doesn't already exist
+//        byte[] byteMetricUID; // we don't actually need this for the first
+//        // .addPoint() call below.
+//        // TODO: Ideally we could just call a not-yet-implemented tsdb.uIdExists()
+//        // function.
+//        // Note, however, that this is optional. If auto metric is enabled
+//        // (tsd.core.auto_create_metrics), the UID will be assigned in call to
+//        // addPoint().
+//        try {
+//            byteMetricUID = tsdb.getUID(UniqueIdType.METRIC, metricName);
+//        } catch (IllegalArgumentException iae) {
+//            System.out.println("Metric name not valid.");
+//            iae.printStackTrace();
+//            System.exit(1);
+//        } catch (NoSuchUniqueName nsune) {
+//            // If not, great. Create it.
+//            byteMetricUID = tsdb.assignUid("metric", metricName);
+//        }
+//
+//        // Make a single datum
+//        long timestamp = System.currentTimeMillis() / 1000;
+//        long value = 314159;
+//        // Make key-val
+//        Map<String, String> tags = new HashMap<String, String>(1);
+//        tags.put("script", "example1");
+//    }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-        return null;
+//        CompletableFuture<Object> future = new CompletableFuture<>();
+//
+//
+//// and when the value is ready, call
+//
+//        String metricName="";
+//        Long value = null;
+//        Map<String,String> tags = new HashMap<>();
+//        tags.put( "user_id", userNotify.getUserID());
+//        tags.put("notify_id", userNotify.getNotifyID());
+//
+//        Deferred<Object> deferred = tsdb.addPoint(metricName, userNotify.getTimestamp(),value, tags);
+//        deferred.addErrback(new OpentsdbUserNotifyDao().new errBack());
+////        deferred.addCallbacks(new OpentsdbUserNotifyDao().new succBack());
+//        tsdb.shutdown().join();
+
     }
+
+
 
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
@@ -154,4 +143,21 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         TSDB tsdb = new TSDB(config);
         return  tsdb;
     }
+
+    // This is an optional errorback to handle when there is a failure.
+    private class errBack implements Callback<String, Exception> {
+        public String call(final Exception e) throws Exception {
+            String message = ">>>>>>>>>>>Failure!>>>>>>>>>>>";
+            System.err.println(message + " " + e.getMessage());
+            e.printStackTrace();
+            return message;
+        }
+    };
+
+    class succBack implements Callback<Object, ArrayList<Object>> {
+        public Object call(final ArrayList<Object> results) {
+            System.out.println("Successfully wrote " + results.size() + " data points");
+            return null;
+        }
+    };
 }
