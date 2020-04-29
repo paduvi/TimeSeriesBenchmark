@@ -4,7 +4,6 @@ import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import com.techpago.config.Settings;
 import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.Pair;
 import com.techpago.model.UserNotify;
 import com.techpago.validator.IValidator;
 import net.opentsdb.core.TSDB;
@@ -17,15 +16,12 @@ import org.springframework.stereotype.Component;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.LinkedBlockingQueue;
 
 @Component
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     private final TSDB tsdb;
-    private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     @Autowired
     private IValidator<UserNotify> validator;
@@ -48,23 +44,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void insert(UserNotify userNotify) throws Exception {
-        CompletableFuture<Object> future = new CompletableFuture<>();
-        validator.validate(userNotify);
-        // Write a number of data points at 30 second intervals. Each write will
-        // return a deferred (similar to a Java Future or JS Promise) that will
-        // be called on completion with either a "null" value on success or an
-        // exception.
-        String metricName = "";
-
-        long value = userNotify.getTimestamp();
-        Map<String, String> tags = new HashMap<>();
-        tags.put("user_id", userNotify.getUserID());
-        tags.put("notify_id", userNotify.getNotifyID());
-
-        Deferred<Object> deferred = tsdb
-                .addPoint(metricName, userNotify.getTimestamp(), value, tags)
-                .addBoth(new BothCallBack(future));
-        deferred.join();
+        CompletableFuture<Object> future = insertAsync(userNotify);
         future.get();
     }
 
@@ -99,7 +79,20 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
         validator.validate(userNotify);
         CompletableFuture<Object> future = new CompletableFuture<>();
-        queue.add(new Pair<>(userNotify, future));
+        validator.validate(userNotify);
+        // Write a number of data points at 30 second intervals. Each write will
+        // return a deferred (similar to a Java Future or JS Promise) that will
+        // be called on completion with either a "null" value on success or an
+        // exception.
+        String metricName = "";
+
+        long value = userNotify.getTimestamp();
+        Map<String, String> tags = new HashMap<>();
+        tags.put("user_id", userNotify.getUserID());
+        tags.put("notify_id", userNotify.getNotifyID());
+
+        Deferred<Object> deferred = tsdb.addPoint(metricName, userNotify.getTimestamp(), value, tags);
+        deferred.addBoth(new BothCallBack(future));
         return future;
     }
 
