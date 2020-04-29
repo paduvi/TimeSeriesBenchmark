@@ -34,13 +34,21 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     private final TSDB tsdb;
 
     public OpentsdbUserNotifyDao(){
-        TSDB tsdbWrite = createTsdb();
-        TSDB tsdbRead = createTsdb();
-    }
-    @PostConstruct
-    void init() throws IOException{
+        Settings setting = Settings.getInstance();
+        Config config = new Config();
 
+        config.overrideConfig("tsd.network.port", "4242"); //The TCP port to use for accepting connections
+        config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
+        config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
+        config.overrideConfig("tsd.core.auto_create_metrics", "true"); //Create new metrics or throw exception if it not exist.
+        config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
+        config.overrideConfig("tsd.storage.hbase.data_table", "tsdb");//Name of the HBase table where data points are stored
+        config.overrideConfig("tsd.storage.hbase.uid_table", "tsdb-uid");//Name of the HBase table where UID information is stored
+        config.overrideConfig("tsd.storage.hbase.zk_quorum",  String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
+        config.overrideConfig("tsd.storage.fix_duplicates", "true");
+        this.tsdb = new TSDB(config);
     }
+
     @Override
     public void insert(UserNotify userNotify) throws Exception {
         // Write a number of data points at 30 second intervals. Each write will
@@ -86,27 +94,10 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //        long timestamp = System.currentTimeMillis() / 1000;
 //        long value = 314159;
 //        // Make key-val
-//        Map<String, String> tags = new HashMap<String, String>(1);
-//        tags.put("script", "example1");
 //    }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-//        CompletableFuture<Object> future = new CompletableFuture<>();
-//
-//
-//// and when the value is ready, call
-//
-//        String metricName="";
-//        Long value = null;
-//        Map<String,String> tags = new HashMap<>();
-//        tags.put( "user_id", userNotify.getUserID());
-//        tags.put("notify_id", userNotify.getNotifyID());
-//
-//        Deferred<Object> deferred = tsdb.addPoint(metricName, userNotify.getTimestamp(),value, tags);
-//        deferred.addErrback(new OpentsdbUserNotifyDao().new errBack());
-////        deferred.addCallbacks(new OpentsdbUserNotifyDao().new succBack());
-//        tsdb.shutdown().join();
-
+return null;
     }
 
 
@@ -123,27 +114,27 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() throws Exception {
-
+        // Declare new metric
+        String metricName = "my.tsdb.test.metric";
+        // First check to see it doesn't already exist
+        byte[] byteMetricUID; // we don't actually need this for the first
+        // .addPoint() call below.
+        // TODO: Ideally we could just call a not-yet-implemented tsdb.uIdExists()
+        // function.
+        // Note, however, that this is optional. If auto metric is enabled
+        // (tsd.core.auto_create_metrics), the UID will be assigned in call to
+        // addPoint().
+        try {
+            byteMetricUID = tsdb.getUID(UniqueIdType.METRIC, metricName);
+        } catch (IllegalArgumentException iae) {
+            System.out.println("Metric name not valid.");
+            iae.printStackTrace();
+            System.exit(1);
+        } catch (NoSuchUniqueName nsune) {
+            // If not, great. Create it.
+            byteMetricUID = tsdb.assignUid("metric", metricName);
+        }
     }
-
-    private TSDB createTsdb(){
-        Settings setting = Settings.getInstance();
-        Config config = new Config();
-
-        config.overrideConfig("tsd.network.port", "4242"); //The TCP port to use for accepting connections
-        config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
-        config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
-        config.overrideConfig("tsd.core.auto_create_metrics", "true"); //Create new metrics or throw exception if it not exist.
-        config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
-        config.overrideConfig("tsd.storage.hbase.data_table", "tsdb");//Name of the HBase table where data points are stored
-        config.overrideConfig("tsd.storage.hbase.uid_table", "tsdb-uid");//Name of the HBase table where UID information is stored
-        config.overrideConfig("tsd.storage.hbase.zk_quorum",  String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
-        config.overrideConfig("tsd.storage.fix_duplicates", "true");
-
-        TSDB tsdb = new TSDB(config);
-        return  tsdb;
-    }
-
     // This is an optional errorback to handle when there is a failure.
     private class errBack implements Callback<String, Exception> {
         public String call(final Exception e) throws Exception {
