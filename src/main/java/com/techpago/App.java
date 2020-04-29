@@ -63,9 +63,13 @@ public class App implements CommandLineRunner {
         numFetchThreadOpt.setRequired(false);
         options.addOption(numFetchThreadOpt);
 
-        Option numBootstrapThreadOpt = new Option("b", "bootstrap", true, "bootstrap option");
-        numBootstrapThreadOpt.setRequired(false);
-        options.addOption(numBootstrapThreadOpt);
+        Option numBootstrapOpt = new Option("b", "bootstrap", true, "bootstrap option");
+        numBootstrapOpt.setRequired(false);
+        options.addOption(numBootstrapOpt);
+
+        Option verboseOpt = new Option("v", "verbose", true, "verbose option");
+        verboseOpt.setRequired(false);
+        options.addOption(verboseOpt);
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
@@ -78,7 +82,8 @@ public class App implements CommandLineRunner {
             int numWriteThread = Integer.parseInt(cmd.getOptionValue(numWriteThreadOpt.getLongOpt(), "1"));
             int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));
             int numFetchThread = Integer.parseInt(cmd.getOptionValue(numFetchThreadOpt.getLongOpt(), "1"));
-            int numBootstrap = Integer.parseInt(cmd.getOptionValue(numBootstrapThreadOpt.getLongOpt(), "0"));
+            int numBootstrap = Integer.parseInt(cmd.getOptionValue(numBootstrapOpt.getLongOpt(), "0"));
+            boolean verbose = Boolean.parseBoolean(cmd.getOptionValue(verboseOpt.getLongOpt(), "false"));
 
             AutowireCapableBeanFactory factory = context.getAutowireCapableBeanFactory();
 
@@ -123,7 +128,7 @@ public class App implements CommandLineRunner {
                     throw new IllegalStateException("Unexpected value: " + mode);
             }
 
-
+            benchmarkService.setVerbose(verbose);
             benchmarkService.bootstrap();
             long minTime = System.currentTimeMillis();
 
