@@ -2,6 +2,7 @@ package com.techpago.dao.impl;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.UserNotify;
+import org.kairosdb.core.KairosDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -12,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
 
 @Component
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
-    private static final Logger logger = LoggerFactory.getLogger(TimescaledbUserNotifyDao.class);
+    private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
 
     public KairosdbUserNotifyDao() {
 
@@ -38,7 +39,11 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         return null;
     }
 
-//    private HttpClient createHttpClient(){
+    @Override
+    public void flushDB() throws Exception {
+
+    }
+    //    private HttpClient createHttpClient(){
 //
 //    }
 }
