@@ -6,6 +6,7 @@ import com.techpago.model.UserNotify;
 import org.kairosdb.client.builder.DataPoint;
 import org.kairosdb.client.builder.Metric;
 import org.kairosdb.client.builder.MetricBuilder;
+import org.kairosdb.client.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -39,16 +40,22 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<Object> future = new CompletableFuture<>();
 
         MetricBuilder metricBuilder = MetricBuilder.getInstance();
         Metric metric = metricBuilder.addMetric(metricName);
         metric.addTag("user_id", userNotify.getUserID());
         metric.addTag("notify_id", userNotify.getNotifyID());
         metric.addDataPoint(userNotify.getTimestamp(),userNotify.getData());
-        client.pushMetrics(metricBuilder);
+        Response response = client.pushMetrics(metricBuilder);
 
-        return null;
+        if (response.getErrors().isEmpty()){
+            future.complete("Sent successful");
+        }
+        else {
+            future.completeExceptionally(new Throwable("Error"));
+        }
+        return future;
     }
 
 

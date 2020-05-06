@@ -102,7 +102,63 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
 
-        return null;
+        CompletableFuture<Object> future = new CompletableFuture<>();
+        //main query
+        final TSQuery query = new TSQuery();
+        query.setStart(fromTime.toString());
+        // at least one sub query required. This is where you specify the metric and
+        // tags
+        final TSSubQuery subQuery = new TSSubQuery();
+        subQuery.setMetric("my.tsdb.test.metric");//required
+        // add filters
+        final List<TagVFilter> filters = new ArrayList<TagVFilter>(1);//optional
+        TagVFilter.Builder builder = new TagVFilter.Builder();
+        builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
+                .setFilter(userID)
+                .setTagk("userID")
+                .setGroupBy(true);
+        filters.add(builder.build());
+        subQuery.setFilters(filters);
+        //Aggregation functions are means of merging two or more data points for a single time stamp into a single value
+        subQuery.setAggregator("count");//required. 'count' --> The number of raw data points in the set
+        // IMPORTANT: don't forget to add the subQuery
+        final ArrayList<TSSubQuery> subQueries = new ArrayList<TSSubQuery>(1);
+        subQueries.add(subQuery);
+        query.setQueries(subQueries);
+        query.setMsResolution(true); // otherwise we aggregate on the second.
+        // make sure the query is valid.
+        query.validateAndSetQuery();
+        // compile the queries into TsdbQuery objects behind the scenes
+        Query[] tsdbqueries = query.buildQueries(tsdb);
+        final ArrayList<DataPoints[]>queryResults = new ArrayList<DataPoints[]>(1);
+        Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync() ;
+
+        deferred.addBoth(new QueryCallBack(future));
+
+        List<UserNotify> results = new ArrayList<>();
+//        Map<String, UserNotify> mapResult = new HashMap<>();
+
+        DataPoints[] dataResults = queryResults.get(0);
+        for (DataPoints data : dataResults){
+            UserNotify userNotify=new UserNotify();
+            Map<String,String> tags = data.getTags();
+            for(final Map.Entry<String, String>pair:tags.entrySet()){
+                if(pair.getKey()=="user_id"){
+                    userNotify.setUserID(pair.getValue());
+                }
+                else{
+                    userNotify.setNotifyID(pair.getValue());
+                }
+            }
+            final SeekableView it = data.iterator();
+            while (it.hasNext()) {
+                final DataPoint dp = it.next();
+                userNotify.setTimestamp(dp.timestamp());
+                userNotify.setData(null);
+            }
+            results.add(userNotify);
+        }
+        return results;
     }
 
     @Override

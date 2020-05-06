@@ -3,6 +3,7 @@ package com.techpago;
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.dao.impl.HBaseUserNotifyDao;
 import com.techpago.dao.impl.InfluxDbUserNotifyDao;
+import com.techpago.dao.impl.OpentsdbUserNotifyDao;
 import com.techpago.dao.impl.TimescaleDbUserNotifyDao;
 import com.techpago.service.BenchmarkService;
 import org.apache.commons.cli.*;
@@ -122,7 +123,17 @@ public class App implements CommandLineRunner {
                             numFetchThread,
                             numBootstrap
                     );
-
+                    break;
+                case 4: //benchmark opentsdb
+                    IUserNotifyDao OpentsdbUserNotifyDao = factory.createBean(com.techpago.dao.impl.OpentsdbUserNotifyDao.class);
+                    benchmarkService = new BenchmarkService(
+                            OpentsdbUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread,
+                            numBootstrap
+                    );
                     break;
                 default:
                     throw new IllegalStateException("Unexpected value: " + mode);
