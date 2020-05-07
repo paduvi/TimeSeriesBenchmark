@@ -104,6 +104,9 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         CompletableFuture<Object> future = new CompletableFuture<>();
         //main query
         final TSQuery query = new TSQuery();
+        if(fromTime == null){
+            fromTime = new Long(0);
+        }
         query.setStart(fromTime.toString());
         // at least one sub query required. This is where you specify the metric and
         // tags
@@ -162,6 +165,9 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         CompletableFuture<Object> future = new CompletableFuture<>();
         //main query
         final TSQuery query = new TSQuery();
+        if(fromTime == null){
+            fromTime = new Long(0);
+        }
         query.setStart(fromTime.toString());
         // at least one sub query required. This is where you specify the metric and
         // tags
