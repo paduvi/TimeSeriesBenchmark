@@ -1,4 +1,4 @@
-package com.techpago.utility;
+package io.dogy.utility;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;

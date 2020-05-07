@@ -1,9 +1,9 @@
-package com.techpago.model;
+package io.dogy.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.techpago.utility.ULID;
-import com.techpago.utility.Util;
+import io.dogy.utility.ULID;
+import io.dogy.utility.Util;
 
 import java.util.Random;
 

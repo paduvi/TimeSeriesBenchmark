@@ -1,8 +1,8 @@
-package com.techpago.service;
+package io.dogy.service;
 
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.UserNotify;
-import com.techpago.utility.Util;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.UserNotify;
+import io.dogy.utility.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

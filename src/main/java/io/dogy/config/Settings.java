@@ -1,4 +1,4 @@
-package com.techpago.config;
+package io.dogy.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -32,7 +32,7 @@
  * limitations under the License.
  */
 
-package com.techpago.utility;
+package io.dogy.utility;
 
 import java.io.Serializable;
 import java.security.SecureRandom;

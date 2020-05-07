@@ -1,7 +1,7 @@
-package com.techpago.dao.impl;
+package io.dogy.dao.impl;
 
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.UserNotify;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.UserNotify;
 import org.kairosdb.client.HttpClient;
 import org.kairosdb.client.builder.Metric;
 import org.kairosdb.client.builder.MetricBuilder;

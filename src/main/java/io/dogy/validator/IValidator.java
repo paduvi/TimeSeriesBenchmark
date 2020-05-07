@@ -1,4 +1,4 @@
-package com.techpago.validator;
+package io.dogy.validator;
 
 public interface IValidator<T> {
 

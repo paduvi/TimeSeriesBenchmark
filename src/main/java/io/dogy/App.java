@@ -1,11 +1,11 @@
-package com.techpago;
+package io.dogy;
 
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.dao.impl.HBaseUserNotifyDao;
-import com.techpago.dao.impl.InfluxDbUserNotifyDao;
-import com.techpago.dao.impl.OpentsdbUserNotifyDao;
-import com.techpago.dao.impl.TimescaleDbUserNotifyDao;
-import com.techpago.service.BenchmarkService;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.dao.impl.HBaseUserNotifyDao;
+import io.dogy.dao.impl.InfluxDbUserNotifyDao;
+import io.dogy.dao.impl.OpentsdbUserNotifyDao;
+import io.dogy.dao.impl.TimescaleDbUserNotifyDao;
+import io.dogy.service.BenchmarkService;
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,7 +152,7 @@ public class App implements CommandLineRunner {
             }
             benchmarkService.benchmarkWriteCallback();
 
-            if (numWriteEpoch * 100 > numBootstrap) {
+            if (numBootstrap != 0 && numWriteEpoch * 100 > numBootstrap) {
                 minTime = System.currentTimeMillis();
                 benchmarkService.bootstrap();
                 maxTime = System.currentTimeMillis();

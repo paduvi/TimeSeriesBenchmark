@@ -1,4 +1,4 @@
-package com.techpago.dao.impl;
+package io.dogy.dao.impl;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.influxdb.client.InfluxDBClient;
@@ -16,10 +16,10 @@ import com.influxdb.query.FluxRecord;
 import com.influxdb.query.FluxTable;
 import com.influxdb.query.dsl.Flux;
 import com.influxdb.query.dsl.functions.restriction.Restrictions;
-import com.techpago.config.Settings;
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.UserNotify;
-import com.techpago.utility.Util;
+import io.dogy.config.Settings;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.UserNotify;
+import io.dogy.utility.Util;
 
 import java.time.Instant;
 import java.util.*;

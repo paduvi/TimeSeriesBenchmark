@@ -1,6 +1,6 @@
-package com.techpago.dao;
+package io.dogy.dao;
 
-import com.techpago.model.UserNotify;
+import io.dogy.model.UserNotify;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;

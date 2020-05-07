@@ -1,4 +1,4 @@
-package com.techpago.utility;
+package io.dogy.utility;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.hadoop.hbase.util.Bytes;

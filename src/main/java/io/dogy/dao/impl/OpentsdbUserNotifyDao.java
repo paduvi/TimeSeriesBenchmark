@@ -1,11 +1,11 @@
-package com.techpago.dao.impl;
+package io.dogy.dao.impl;
 
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import com.techpago.config.Settings;
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.UserNotify;
-import com.techpago.validator.IValidator;
+import io.dogy.config.Settings;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.UserNotify;
+import io.dogy.validator.IValidator;
 import net.opentsdb.core.*;
 import net.opentsdb.query.filter.TagVFilter;
 import net.opentsdb.uid.NoSuchUniqueName;

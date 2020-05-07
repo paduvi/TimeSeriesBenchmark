@@ -1,4 +1,4 @@
-package com.techpago;
+package io.dogy;
 
 import org.junit.Test;
 

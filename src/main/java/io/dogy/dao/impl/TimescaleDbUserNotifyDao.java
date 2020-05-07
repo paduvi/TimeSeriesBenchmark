@@ -1,13 +1,13 @@
-package com.techpago.dao.impl;
+package io.dogy.dao.impl;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.Lists;
-import com.techpago.config.Settings;
-import com.techpago.dao.IUserNotifyDao;
-import com.techpago.model.Pair;
-import com.techpago.model.UserNotify;
-import com.techpago.utility.Util;
-import com.techpago.validator.IValidator;
+import io.dogy.config.Settings;
+import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.Pair;
+import io.dogy.model.UserNotify;
+import io.dogy.utility.Util;
+import io.dogy.validator.IValidator;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.postgresql.Driver;
 import org.postgresql.util.PGobject;

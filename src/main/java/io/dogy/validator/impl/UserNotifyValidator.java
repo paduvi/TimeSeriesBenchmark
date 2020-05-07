@@ -1,7 +1,7 @@
-package com.techpago.validator.impl;
+package io.dogy.validator.impl;
 
-import com.techpago.model.UserNotify;
-import com.techpago.validator.IValidator;
+import io.dogy.model.UserNotify;
+import io.dogy.validator.IValidator;
 import org.springframework.stereotype.Component;
 
 @Component

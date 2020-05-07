@@ -1,4 +1,4 @@
-package com.techpago.model;
+package io.dogy.model;
 
 public class Pair<T1, T2> {
 
