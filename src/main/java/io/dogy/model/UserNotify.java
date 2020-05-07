@@ -63,4 +63,14 @@ public class UserNotify {
     public void setData(ObjectNode data) {
         this.data = data;
     }
+
+    @Override
+    public String toString() {
+        return "UserNotify{" +
+                "userID='" + userID + '\'' +
+                ", notifyID='" + notifyID + '\'' +
+                ", timestamp=" + timestamp +
+                ", data=" + data +
+                '}';
+    }
 }

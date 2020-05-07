@@ -3,14 +3,14 @@
     <!--    <property file="${properties.path:-logback.properties}"/>-->
 
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
-<!--    <logger name="org.spark_project" level="WARN"/>-->
-<!--    <logger name="org.apache" level="WARN"/>-->
-<!--    <logger name="org.springframework" level="WARN"/>-->
+    <logger name="org.spark_project" level="WARN"/>
+    <logger name="org.apache" level="WARN"/>
+    <logger name="org.springframework" level="WARN"/>
     <logger name="org.apache.kafka.clients.consumer.ConsumerConfig" level="ERROR"/>
-    <!--    <logger name="org.ehcache" level="WARN"/>-->
     <logger name="org.apache.hadoop" level="ERROR"/>
     <logger name="net.opentsdb.uid" level="WARN"/>
     <logger name="org.quartz.core" level="WARN"/>
+    <logger name="org.hbase" level="WARN"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <!-- deny all events with a level below INFO, that is TRACE and DEBUG -->

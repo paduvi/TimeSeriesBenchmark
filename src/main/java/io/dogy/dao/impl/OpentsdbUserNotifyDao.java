@@ -1,5 +1,6 @@
 package io.dogy.dao.impl;
 
+import com.beust.jcommander.internal.Lists;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
 import io.dogy.config.Settings;
@@ -78,9 +79,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //    }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-        validator.validate(userNotify);
+//        validator.validate(userNotify);
         CompletableFuture<Object> future = new CompletableFuture<>();
-        validator.validate(userNotify);
         // Write a number of data points at 30 second intervals. Each write will
         // return a deferred (similar to a Java Future or JS Promise) that will
         // be called on completion with either a "null" value on success or an
@@ -100,12 +100,10 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
-
-        CompletableFuture<Object> future = new CompletableFuture<>();
         //main query
         final TSQuery query = new TSQuery();
-        if(fromTime == null){
-            fromTime = new Long(0);
+        if (fromTime == null) {
+            fromTime = System.currentTimeMillis();
         }
         query.setStart(fromTime.toString());
         // at least one sub query required. This is where you specify the metric and
@@ -117,7 +115,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         TagVFilter.Builder builder = new TagVFilter.Builder();
         builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
                 .setFilter(userID)
-                .setTagk("userID")
+                .setTagk("user_id")
                 .setGroupBy(true);
         filters.add(builder.build());
         subQuery.setFilters(filters);
@@ -132,91 +130,95 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         query.validateAndSetQuery();
         // compile the queries into TsdbQuery objects behind the scenes
         Query[] tsdbqueries = query.buildQueries(tsdb);
-        final ArrayList<DataPoints[]> queryResults = new ArrayList<DataPoints[]>(1);
         Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync();
-
+        CompletableFuture<DataPoints[]> future = new CompletableFuture<>();
         deferred.addBoth(new QueryCallBack(future));
 
         List<UserNotify> results = new ArrayList<>();
 //        Map<String, UserNotify> mapResult = new HashMap<>();
 
-        DataPoints[] dataResults = queryResults.get(0);
+        DataPoints[] dataResults = future.get();
         for (DataPoints data : dataResults) {
-            UserNotify userNotify = new UserNotify();
-            Map<String, String> tags = data.getTags();
-            for (final Map.Entry<String, String> pair : tags.entrySet()) {
-                if (pair.getKey() == "user_id") {
-                    userNotify.setUserID(pair.getValue());
-                } else {
-                    userNotify.setNotifyID(pair.getValue());
-                }
-            }
             for (DataPoint dp : data) {
+                UserNotify userNotify = new UserNotify();
+                Map<String, String> tags = data.getTags();
+                for (final Map.Entry<String, String> pair : tags.entrySet()) {
+                    switch (pair.getKey()) {
+                        case "user_id":
+                            userNotify.setUserID(pair.getValue());
+                            break;
+                        case "notify_id":
+                            userNotify.setNotifyID(pair.getValue());
+                            break;
+                    }
+                }
                 userNotify.setTimestamp(dp.timestamp());
                 userNotify.setData(null);
+                results.add(userNotify);
             }
-            results.add(userNotify);
         }
         return results;
     }
 
     @Override
     public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
-        CompletableFuture<Object> future = new CompletableFuture<>();
         //main query
         final TSQuery query = new TSQuery();
-        if(fromTime == null){
-            fromTime = new Long(0);
+        if (fromTime == null) {
+            fromTime = 0L;
         }
         query.setStart(fromTime.toString());
+
+        final List<TagVFilter> filters = new ArrayList<>(1);//optional
+        TagVFilter.Builder builder = new TagVFilter.Builder();
+        builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
+                .setFilter(userID)
+                .setTagk("user_id")
+                .setGroupBy(true);
+        filters.add(builder.build());
+
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
         subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
         // add filters
-        final List<TagVFilter> filters = new ArrayList<TagVFilter>(1);//optional
-        TagVFilter.Builder builder = new TagVFilter.Builder();
-        builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
-                .setFilter(userID)
-                .setTagk("userID")
-                .setGroupBy(true);
-        filters.add(builder.build());
         subQuery.setFilters(filters);
         //Aggregation functions are means of merging two or more data points for a single time stamp into a single value
         subQuery.setAggregator("count");//required. 'count' --> The number of raw data points in the set
-        // IMPORTANT: don't forget to add the subQuery
-        final ArrayList<TSSubQuery> subQueries = new ArrayList<TSSubQuery>(1);
-        subQueries.add(subQuery);
-        query.setQueries(subQueries);
+
+        query.setQueries(Lists.newArrayList(subQuery));
         query.setMsResolution(true); // otherwise we aggregate on the second.
         // make sure the query is valid.
         query.validateAndSetQuery();
         // compile the queries into TsdbQuery objects behind the scenes
         Query[] tsdbqueries = query.buildQueries(tsdb);
-        final ArrayList<DataPoints[]> queryResults = new ArrayList<DataPoints[]>(1);
         Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync();
 
+        CompletableFuture<DataPoints[]> future = new CompletableFuture<>();
         deferred.addBoth(new QueryCallBack(future));
 
         List<UserNotify> results = new ArrayList<>();
 //        Map<String, UserNotify> mapResult = new HashMap<>();
 
-        DataPoints[] dataResults = queryResults.get(0);
+        DataPoints[] dataResults = future.get();
         for (DataPoints data : dataResults) {
-            UserNotify userNotify = new UserNotify();
-            Map<String, String> tags = data.getTags();
-            for (final Map.Entry<String, String> pair : tags.entrySet()) {
-                if (pair.getKey().equals("user_id")) {
-                    userNotify.setUserID(pair.getValue());
-                } else {
-                    userNotify.setNotifyID(pair.getValue());
-                }
-            }
             for (DataPoint dp : data) {
+                UserNotify userNotify = new UserNotify();
+                Map<String, String> tags = data.getTags();
+                for (final Map.Entry<String, String> pair : tags.entrySet()) {
+                    switch (pair.getKey()) {
+                        case "user_id":
+                            userNotify.setUserID(pair.getValue());
+                            break;
+                        case "notify_id":
+                            userNotify.setNotifyID(pair.getValue());
+                            break;
+                    }
+                }
                 userNotify.setTimestamp(dp.timestamp());
                 userNotify.setData(null);
+                results.add(userNotify);
             }
-            results.add(userNotify);
         }
         return results;
     }
@@ -267,9 +269,9 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     }
 
     private static class QueryCallBack implements Callback<Object, DataPoints[]> {
-        private final CompletableFuture<Object> future;
+        private final CompletableFuture<DataPoints[]> future;
 
-        public QueryCallBack(CompletableFuture<Object> future) {
+        public QueryCallBack(CompletableFuture<DataPoints[]> future) {
             this.future = future;
         }
 
@@ -293,6 +295,26 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //                pathToConfigFile = args[0];
 //            }
 //        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            OpentsdbUserNotifyDao testDao = new OpentsdbUserNotifyDao();
+
+            for (int i = 0; i < 50; i++) {
+                UserNotify userNotify = new UserNotify();
+                userNotify.setNotifyID(String.valueOf(i));
+                userNotify.setUserID(String.valueOf(i % 5));
+                userNotify.setTimestamp(System.currentTimeMillis());
+                testDao.insert(userNotify);
+            }
+
+            for (UserNotify result : testDao.fetchAsc("3", null)) {
+                System.out.println(result);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 }
