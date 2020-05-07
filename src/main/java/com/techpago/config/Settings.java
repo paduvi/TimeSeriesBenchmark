@@ -49,8 +49,8 @@ public class Settings {
     public String INFLUXDB_MEASUREMENT = "timeseries_tbl";
 
     public String TSDB_METRIC = "my.tsdb.test.metric";
-    public String TSDB_HOST ="localhost";
-    public String TSDB_PORT="localhost";
+    public String TSDB_HOST ="127.0.0.1:2181";
+    public String TSDB_TCP_PORT="4242";
     public String TSDB_HBASE_DATA_TABLE="tsdb";
     public String TSDB_HBASE_UID_TABLE="tsdb-uid";
 
