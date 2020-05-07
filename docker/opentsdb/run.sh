@@ -1,1 +1,2 @@
-docker run --rm -dp 4242:4242 petergrace/opentsdb-docker
+#!/bin/bash
+docker run --rm -d --network host --name opentsdb petergrace/opentsdb-docker

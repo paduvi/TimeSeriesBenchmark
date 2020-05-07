@@ -11,7 +11,6 @@ import net.opentsdb.query.filter.TagVFilter;
 import net.opentsdb.uid.NoSuchUniqueName;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
-import org.hbase.async.HBaseClient;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;
@@ -29,18 +28,16 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     public OpentsdbUserNotifyDao() throws Exception {
         Settings setting = Settings.getInstance();
-        Config config;
-        config = new Config(true);
+        Config config = new Config(true);
         config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HOST);
-        config.overrideConfig("tsd.network.port",setting.TSDB_TCP_PORT); //The TCP port to use for accepting connections
+        config.overrideConfig("tsd.storage.hbase.zk_basedir", setting.TSDB_LOCATION);
+        config.overrideConfig("tsd.network.port", setting.TSDB_TCP_PORT); //The TCP port to use for accepting connections
         config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
         config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
         config.overrideConfig("tsd.core.auto_create_metrics", "true"); //Create new metrics or throw exception if it not exist.
         config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
         config.overrideConfig("tsd.storage.hbase.data_table", setting.TSDB_HBASE_DATA_TABLE);//Name of the HBase table where data points are stored
-        config.overrideConfig("tsd.storage.hbase.uid_table",setting.TSDB_HBASE_UID_TABLE);//Name of the HBase table where UID information is stored
-        config.overrideConfig("tsd.storage.hbase.zk_basedir","/hbase-unsecured");
-//        config.overrideConfig("tsd.storage.hbase.zk_quorum", String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
+        config.overrideConfig("tsd.storage.hbase.uid_table", setting.TSDB_HBASE_UID_TABLE);//Name of the HBase table where UID information is stored
         config.overrideConfig("tsd.storage.fix_duplicates", "true");
 
         this.tsdb = new TSDB(config);
