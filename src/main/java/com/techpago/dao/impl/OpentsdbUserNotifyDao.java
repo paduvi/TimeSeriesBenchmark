@@ -20,18 +20,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-@Component
+
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     private final TSDB tsdb;
-
     @Autowired
     private IValidator<UserNotify> validator;
 
-    public OpentsdbUserNotifyDao() {
+    public OpentsdbUserNotifyDao() throws Exception{
         Settings setting = Settings.getInstance();
-        Config config = new Config();
-
+        Config config;
+        config = new Config(true);
+        config.overrideConfig("tsd.storage.hbase.zk_quorum", "localhost");
         config.overrideConfig("tsd.network.port", "4242"); //The TCP port to use for accepting connections
         config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
         config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
@@ -39,7 +39,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
         config.overrideConfig("tsd.storage.hbase.data_table", "tsdb");//Name of the HBase table where data points are stored
         config.overrideConfig("tsd.storage.hbase.uid_table", "tsdb-uid");//Name of the HBase table where UID information is stored
-        config.overrideConfig("tsd.storage.hbase.zk_quorum", String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
+//        config.overrideConfig("tsd.storage.hbase.zk_quorum", String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
         config.overrideConfig("tsd.storage.fix_duplicates", "true");
         this.tsdb = new TSDB(config);
     }
@@ -282,6 +282,14 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
             future.complete(queryResult);
             return queryResult;
         }
+
+//        public static void processArgs(final String[] args) {
+//            // Set these as arguments so you don't have to keep path information in
+//            // source files
+//            if (args != null && args.length > 0) {
+//                pathToConfigFile = args[0];
+//            }
+//        }
     }
 
 }

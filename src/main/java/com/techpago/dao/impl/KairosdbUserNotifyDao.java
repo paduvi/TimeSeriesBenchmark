@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
 import org.kairosdb.client.HttpClient;
 
 
-@Component
+
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
     private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
     private String dbUrl = "localhost";
@@ -35,8 +35,8 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
        client = new HttpClient("https:"+dbUrl+":"+port);
        MetricBuilder metricBuilder = MetricBuilder.getInstance();
        Metric metric = metricBuilder.addMetric(metricName);
+       metric.addTag("user_id","123456");
        client.pushMetrics(metricBuilder);
-
     }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {

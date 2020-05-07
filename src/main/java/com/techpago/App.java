@@ -25,6 +25,7 @@ public class App implements CommandLineRunner {
     @Autowired
     private ApplicationContext context;
 
+
 //    @Autowired
 //    @Qualifier("KairosdbUserNotifyDao")
 //    private IUserNotifyDao kairosdbUserNotifyDao;
@@ -125,9 +126,9 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 4: //benchmark opentsdb
-                    IUserNotifyDao OpentsdbUserNotifyDao = factory.createBean(com.techpago.dao.impl.OpentsdbUserNotifyDao.class);
+                    IUserNotifyDao opentsdbUserNotibeanfyDao = factory.createBean(OpentsdbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
-                            OpentsdbUserNotifyDao,
+                            opentsdbUserNotibeanfyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
