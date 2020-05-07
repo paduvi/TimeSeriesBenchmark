@@ -12,7 +12,6 @@ import net.opentsdb.uid.NoSuchUniqueName;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,14 +19,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     private final TSDB tsdb;
+
     @Autowired
     private IValidator<UserNotify> validator;
 
-    public OpentsdbUserNotifyDao() throws Exception{
+    public OpentsdbUserNotifyDao() throws Exception {
         Settings setting = Settings.getInstance();
         Config config;
         config = new Config(true);
@@ -98,7 +97,6 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         return future;
     }
 
-
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
 
@@ -130,8 +128,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         query.validateAndSetQuery();
         // compile the queries into TsdbQuery objects behind the scenes
         Query[] tsdbqueries = query.buildQueries(tsdb);
-        final ArrayList<DataPoints[]>queryResults = new ArrayList<DataPoints[]>(1);
-        Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync() ;
+        final ArrayList<DataPoints[]> queryResults = new ArrayList<DataPoints[]>(1);
+        Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync();
 
         deferred.addBoth(new QueryCallBack(future));
 
@@ -139,20 +137,17 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //        Map<String, UserNotify> mapResult = new HashMap<>();
 
         DataPoints[] dataResults = queryResults.get(0);
-        for (DataPoints data : dataResults){
-            UserNotify userNotify=new UserNotify();
-            Map<String,String> tags = data.getTags();
-            for(final Map.Entry<String, String>pair:tags.entrySet()){
-                if(pair.getKey()=="user_id"){
+        for (DataPoints data : dataResults) {
+            UserNotify userNotify = new UserNotify();
+            Map<String, String> tags = data.getTags();
+            for (final Map.Entry<String, String> pair : tags.entrySet()) {
+                if (pair.getKey() == "user_id") {
                     userNotify.setUserID(pair.getValue());
-                }
-                else{
+                } else {
                     userNotify.setNotifyID(pair.getValue());
                 }
             }
-            final SeekableView it = data.iterator();
-            while (it.hasNext()) {
-                final DataPoint dp = it.next();
+            for (DataPoint dp : data) {
                 userNotify.setTimestamp(dp.timestamp());
                 userNotify.setData(null);
             }
@@ -191,8 +186,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         query.validateAndSetQuery();
         // compile the queries into TsdbQuery objects behind the scenes
         Query[] tsdbqueries = query.buildQueries(tsdb);
-        final ArrayList<DataPoints[]>queryResults = new ArrayList<DataPoints[]>(1);
-        Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync() ;
+        final ArrayList<DataPoints[]> queryResults = new ArrayList<DataPoints[]>(1);
+        Deferred<DataPoints[]> deferred = tsdbqueries[0].runAsync();
 
         deferred.addBoth(new QueryCallBack(future));
 
@@ -200,22 +195,19 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //        Map<String, UserNotify> mapResult = new HashMap<>();
 
         DataPoints[] dataResults = queryResults.get(0);
-        for (DataPoints data : dataResults){
-            UserNotify userNotify=new UserNotify();
-            Map<String,String> tags = data.getTags();
-            for(final Map.Entry<String, String>pair:tags.entrySet()){
-                if(pair.getKey()=="user_id"){
+        for (DataPoints data : dataResults) {
+            UserNotify userNotify = new UserNotify();
+            Map<String, String> tags = data.getTags();
+            for (final Map.Entry<String, String> pair : tags.entrySet()) {
+                if (pair.getKey().equals("user_id")) {
                     userNotify.setUserID(pair.getValue());
-                }
-                else{
+                } else {
                     userNotify.setNotifyID(pair.getValue());
                 }
             }
-            final SeekableView it = data.iterator();
-            while (it.hasNext()) {
-                final DataPoint dp = it.next();
-               userNotify.setTimestamp(dp.timestamp());
-               userNotify.setData(null);
+            for (DataPoint dp : data) {
+                userNotify.setTimestamp(dp.timestamp());
+                userNotify.setData(null);
             }
             results.add(userNotify);
         }
@@ -264,6 +256,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
             return arg;
         }
     }
+
     private static class QueryCallBack implements Callback<Object, DataPoints[]> {
         private final CompletableFuture<Object> future;
 
@@ -274,11 +267,12 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         @Override
         public Object call(DataPoints[] queryResult) {
             for (DataPoints result : queryResult) {
-            if (result instanceof Exception) {
-                Exception e = (Exception) result;
-                future.completeExceptionally(e);
-                return e.getMessage();
-            }}
+                if (result instanceof Exception) {
+                    Exception e = (Exception) result;
+                    future.completeExceptionally(e);
+                    return e.getMessage();
+                }
+            }
             future.complete(queryResult);
             return queryResult;
         }

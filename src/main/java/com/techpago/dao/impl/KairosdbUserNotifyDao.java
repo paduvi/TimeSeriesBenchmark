@@ -2,28 +2,22 @@ package com.techpago.dao.impl;
 
 import com.techpago.dao.IUserNotifyDao;
 import com.techpago.model.UserNotify;
-
-import org.kairosdb.client.builder.DataPoint;
+import org.kairosdb.client.HttpClient;
 import org.kairosdb.client.builder.Metric;
 import org.kairosdb.client.builder.MetricBuilder;
 import org.kairosdb.client.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
-import java.net.MalformedURLException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import org.kairosdb.client.HttpClient;
-
 
 
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
     private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
     private String dbUrl = "localhost";
     private String port = "8083";
-    private String metricName="test";
+    private String metricName = "test";
     HttpClient client;
 
 
@@ -31,13 +25,15 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     public void insert(UserNotify userNotify) throws Exception {
 
     }
+
     public KairosdbUserNotifyDao() throws Exception {
-       client = new HttpClient("https:"+dbUrl+":"+port);
-       MetricBuilder metricBuilder = MetricBuilder.getInstance();
-       Metric metric = metricBuilder.addMetric(metricName);
-       metric.addTag("user_id","123456");
-       client.pushMetrics(metricBuilder);
+        client = new HttpClient("https:" + dbUrl + ":" + port);
+        MetricBuilder metricBuilder = MetricBuilder.getInstance();
+        Metric metric = metricBuilder.addMetric(metricName);
+        metric.addTag("user_id", "123456");
+        client.pushMetrics(metricBuilder);
     }
+
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
         CompletableFuture<Object> future = new CompletableFuture<>();
@@ -46,13 +42,12 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         Metric metric = metricBuilder.addMetric(metricName);
         metric.addTag("user_id", userNotify.getUserID());
         metric.addTag("notify_id", userNotify.getNotifyID());
-        metric.addDataPoint(userNotify.getTimestamp(),userNotify.getData());
+        metric.addDataPoint(userNotify.getTimestamp(), userNotify.getData());
         Response response = client.pushMetrics(metricBuilder);
 
-        if (response.getErrors().isEmpty()){
+        if (response.getErrors().isEmpty()) {
             future.complete("Sent successful");
-        }
-        else {
+        } else {
             future.completeExceptionally(new Throwable("Error"));
         }
         return future;

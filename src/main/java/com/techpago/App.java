@@ -126,9 +126,9 @@ public class App implements CommandLineRunner {
                     );
                     break;
                 case 4: //benchmark opentsdb
-                    IUserNotifyDao opentsdbUserNotibeanfyDao = factory.createBean(OpentsdbUserNotifyDao.class);
+                    IUserNotifyDao opentsdbUserNotifyDao = factory.createBean(OpentsdbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
-                            opentsdbUserNotibeanfyDao,
+                            opentsdbUserNotifyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,
