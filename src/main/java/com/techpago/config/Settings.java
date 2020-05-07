@@ -48,6 +48,12 @@ public class Settings {
     public String INFLUXDB_TOKEN = "my-token";
     public String INFLUXDB_MEASUREMENT = "timeseries_tbl";
 
+    public String TSDB_METRIC = "my.tsdb.test.metric";
+    public String TSDB_HOST ="localhost";
+    public String TSDB_PORT="localhost";
+    public String TSDB_HBASE_DATA_TABLE="tsdb";
+    public String TSDB_HBASE_UID_TABLE="tsdb-uid";
+
     public static Settings getInstance() {
         Settings result = instance;
         if (result == null) {

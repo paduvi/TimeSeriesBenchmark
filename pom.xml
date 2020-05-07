@@ -105,20 +105,12 @@
             <version>${influxdb.version}</version>
         </dependency>
 
-        <!-- bval.apache -->
-        <dependency>
-            <groupId>org.apache.geronimo.specs</groupId>
-            <artifactId>geronimo-validation_1.0_spec</artifactId>
-            <version>1.1</version>
-        </dependency>
         <!-- https://mvnrepository.com/artifact/org.apache.bval/bval-jsr -->
         <dependency>
             <groupId>org.apache.bval</groupId>
             <artifactId>bval-jsr</artifactId>
-            <version>2.0.3</version>
+            <version>1.1.2</version>
         </dependency>
-
-
 
         <!-- Spring -->
         <dependency>

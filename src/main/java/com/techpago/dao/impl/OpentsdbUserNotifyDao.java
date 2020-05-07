@@ -31,14 +31,14 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         Settings setting = Settings.getInstance();
         Config config;
         config = new Config(true);
-        config.overrideConfig("tsd.storage.hbase.zk_quorum", "localhost");
-        config.overrideConfig("tsd.network.port", "4242"); //The TCP port to use for accepting connections
+        config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HOST);
+        config.overrideConfig("tsd.network.port", setting.TSDB_PORT); //The TCP port to use for accepting connections
         config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
         config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
         config.overrideConfig("tsd.core.auto_create_metrics", "true"); //Create new metrics or throw exception if it not exist.
         config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
-        config.overrideConfig("tsd.storage.hbase.data_table", "tsdb");//Name of the HBase table where data points are stored
-        config.overrideConfig("tsd.storage.hbase.uid_table", "tsdb-uid");//Name of the HBase table where UID information is stored
+        config.overrideConfig("tsd.storage.hbase.data_table", setting.TSDB_HBASE_DATA_TABLE);//Name of the HBase table where data points are stored
+        config.overrideConfig("tsd.storage.hbase.uid_table",setting.TSDB_HBASE_UID_TABLE);//Name of the HBase table where UID information is stored
 //        config.overrideConfig("tsd.storage.hbase.zk_quorum", String.join(",", setting.HBASE_IP)); //List of Zookeeper hosts that manage the HBase cluster
         config.overrideConfig("tsd.storage.fix_duplicates", "true");
         this.tsdb = new TSDB(config);
@@ -86,7 +86,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         // return a deferred (similar to a Java Future or JS Promise) that will
         // be called on completion with either a "null" value on success or an
         // exception.
-        String metricName = "";
+
+        String metricName = Settings.getInstance().TSDB_METRIC;
 
         long value = userNotify.getTimestamp();
         Map<String, String> tags = new HashMap<>();
@@ -109,7 +110,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
-        subQuery.setMetric("my.tsdb.test.metric");//required
+        subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
         // add filters
         final List<TagVFilter> filters = new ArrayList<TagVFilter>(1);//optional
         TagVFilter.Builder builder = new TagVFilter.Builder();
@@ -170,7 +171,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
-        subQuery.setMetric("my.tsdb.test.metric");//required
+        subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
         // add filters
         final List<TagVFilter> filters = new ArrayList<TagVFilter>(1);//optional
         TagVFilter.Builder builder = new TagVFilter.Builder();
@@ -225,7 +226,9 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     @Override
     public void flushDB() throws Exception {
         // Declare new metric
-        String metricName = "my.tsdb.test.metric";
+
+        Settings settings = Settings.getInstance();
+        String metricName = settings.TSDB_METRIC;
 
         byte[] byteMetricUID; // we don't actually need this for the first
         // .addPoint() call below.
