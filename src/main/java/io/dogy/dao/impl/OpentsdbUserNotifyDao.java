@@ -64,7 +64,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-//        validator.validate(userNotify);
+        validator.validate(userNotify);
         CompletableFuture<Object> future = new CompletableFuture<>();
         // Write a number of data points at 30 second intervals. Each write will
         // return a deferred (similar to a Java Future or JS Promise) that will
