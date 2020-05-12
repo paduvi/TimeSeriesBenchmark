@@ -1,19 +1,37 @@
 package io.dogy.dao.impl;
 
 import com.beust.jcommander.internal.Lists;
+import com.google.inject.internal.cglib.core.$ObjectSwitchCallback;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
+import com.sun.org.apache.bcel.internal.generic.ANEWARRAY;
 import io.dogy.config.Settings;
 import io.dogy.dao.IUserNotifyDao;
 import io.dogy.model.UserNotify;
+import io.dogy.utility.Util;
 import io.dogy.validator.IValidator;
 import net.opentsdb.core.*;
+import net.opentsdb.core.Query;
 import net.opentsdb.query.filter.TagVFilter;
 import net.opentsdb.uid.NoSuchUniqueName;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
+import org.hbase.async.DeleteRequest;
+import org.hbase.async.Scanner;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.hbase.async.HBaseClient.*;
 
+import org.apache.hadoop.conf.Configuration;
+
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,14 +41,16 @@ import java.util.concurrent.CompletableFuture;
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     private final TSDB tsdb;
+    private final Config config;
+    Settings setting = Settings.getInstance();
 
     @Autowired
     private IValidator<UserNotify> validator;
 
     public OpentsdbUserNotifyDao() throws Exception {
-        Settings setting = Settings.getInstance();
-        Config config = new Config(true);
-        config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HOST);
+
+        this.config = new Config(true);
+        config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HBASE_HOST+":"+setting.TSDB_HBASE_PORT);
         config.overrideConfig("tsd.storage.hbase.zk_basedir", setting.TSDB_LOCATION);
         config.overrideConfig("tsd.network.port", setting.TSDB_TCP_PORT); //The TCP port to use for accepting connections
         config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
@@ -40,7 +60,6 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         config.overrideConfig("tsd.storage.hbase.data_table", setting.TSDB_HBASE_DATA_TABLE);//Name of the HBase table where data points are stored
         config.overrideConfig("tsd.storage.hbase.uid_table", setting.TSDB_HBASE_UID_TABLE);//Name of the HBase table where UID information is stored
         config.overrideConfig("tsd.storage.fix_duplicates", "true");
-
         this.tsdb = new TSDB(config);
     }
 
@@ -50,33 +69,6 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         future.get();
     }
 
-    //    private void createDB(TSDB tsdb) throws IOException{
-//        // Declare new metric
-//        String metricName = "my.tsdb.test.metric";
-//        // First check to see it doesn't already exist
-//        byte[] byteMetricUID; // we don't actually need this for the first
-//        // .addPoint() call below.
-//        // TODO: Ideally we could just call a not-yet-implemented tsdb.uIdExists()
-//        // function.
-//        // Note, however, that this is optional. If auto metric is enabled
-//        // (tsd.core.auto_create_metrics), the UID will be assigned in call to
-//        // addPoint().
-//        try {
-//            byteMetricUID = tsdb.getUID(UniqueIdType.METRIC, metricName);
-//        } catch (IllegalArgumentException iae) {
-//            System.out.println("Metric name not valid.");
-//            iae.printStackTrace();
-//            System.exit(1);
-//        } catch (NoSuchUniqueName nsune) {
-//            // If not, great. Create it.
-//            byteMetricUID = tsdb.assignUid("metric", metricName);
-//        }
-//
-//        // Make a single datum
-//        long timestamp = System.currentTimeMillis() / 1000;
-//        long value = 314159;
-//        // Make key-val
-//    }
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
 //        validator.validate(userNotify);
@@ -225,27 +217,43 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() throws Exception {
-        // Declare new metric
 
-        Settings settings = Settings.getInstance();
-        String metricName = settings.TSDB_METRIC;
+        Admin admin = null;
 
-        byte[] byteMetricUID; // we don't actually need this for the first
-        // .addPoint() call below.
-        // TODO: Ideally we could just call a not-yet-implemented tsdb.uIdExists()
-        // function.
-        // Note, however, that this is optional. If auto metric is enabled
-        // (tsd.core.auto_create_metrics), the UID will be assigned in call to
-        // addPoint().
+        Configuration config = HBaseConfiguration.create();
+        config.set("hbase.zookeeper.quorum", this.setting.TSDB_HBASE_HOST);
+        config.setInt("hbase.zookeeper.property.clientPort", Integer.valueOf(setting.TSDB_HBASE_PORT));
+        config.set("zookeeper.znode.parent", this.setting.TSDB_LOCATION);
+        config.set("hbase.rpc.timeout", "10000");
+        HBaseAdmin.checkHBaseAvailable(config);
+
+
+        // Add custom config parameters here
+        Connection connection = ConnectionFactory.createConnection(config);
+
+
+        ArrayList<String> tableNames = new ArrayList<>();
+        tableNames.add(this.setting.TSDB_HBASE_DATA_TABLE);
+        tableNames.add(this.setting.TSDB_HBASE_UID_TABLE);
         try {
-            byteMetricUID = tsdb.getUID(UniqueIdType.METRIC, metricName);
-        } catch (IllegalArgumentException iae) {
-            System.out.println("Metric name not valid.");
-            iae.printStackTrace();
-            System.exit(1);
-        } catch (NoSuchUniqueName nsune) {
-            // If not, great. Create it.
-            byteMetricUID = tsdb.assignUid("metric", metricName);
+            admin = connection.getAdmin();
+
+            for (String tableName : tableNames) {
+                System.out.print("Truncate table " + tableName);
+                try {
+                    if (admin.tableExists(TableName.valueOf(tableName))) {
+                        if (!admin.isTableDisabled(TableName.valueOf(tableName))) {
+                            admin.disableTable(TableName.valueOf(tableName));
+                        }
+                        admin.truncateTable(TableName.valueOf(tableName), true);
+                    }
+                }
+                catch (IOException e) {
+                    System.out.print("Failed to truncate table " + tableName + "\nError Msg: " + e.getMessage());
+                }
+            }
+        } catch (Exception e){
+            System.out.print("Could not connect to HBase Admin. Error Msg: " + e.getMessage());
         }
     }
 
@@ -297,24 +305,34 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //        }
     }
 
-    public static void main(String[] args) {
-        try {
-            OpentsdbUserNotifyDao testDao = new OpentsdbUserNotifyDao();
-
-            for (int i = 0; i < 50; i++) {
-                UserNotify userNotify = new UserNotify();
-                userNotify.setNotifyID(String.valueOf(i));
-                userNotify.setUserID(String.valueOf(i % 5));
-                userNotify.setTimestamp(System.currentTimeMillis());
-                testDao.insert(userNotify);
-            }
-
-            for (UserNotify result : testDao.fetchAsc("3", null)) {
-                System.out.println(result);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+//    public static void main(String[] args) {
+//        try {
+//            OpentsdbUserNotifyDao testDao = new OpentsdbUserNotifyDao();
+//
+//
+//            for (int i = 0; i < 10; i++) {
+//                UserNotify userNotify = new UserNotify();
+//                userNotify.setNotifyID(String.valueOf(i));
+//                userNotify.setUserID(String.valueOf(i % 5));
+//                userNotify.setTimestamp(System.currentTimeMillis());
+//                System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
+//                testDao.insert(userNotify);
+//            }
+//            for (UserNotify result : testDao.fetchAsc("3", null)) {
+//                System.out.println();
+//                System.out.println(result);
+//            }
+//            testDao.flushDB();
+//
+//            System.out.println(testDao.tsdb.dataTable().length);
+//            int i = 0;
+//            for (UserNotify result : testDao.fetchAsc("3", null)) {
+//                System.out.println(i++);
+//                System.out.println(result);
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//    }
 
 }
