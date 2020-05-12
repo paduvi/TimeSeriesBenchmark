@@ -97,7 +97,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         if (fromTime == null) {
             fromTime = System.currentTimeMillis();
         }
-        query.setStart(fromTime.toString());
+        query.setStart("0");
+        query.setEnd(fromTime.toString());
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
@@ -156,11 +157,12 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
     public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
         //main query
         final TSQuery query = new TSQuery();
+
         if (fromTime == null) {
             fromTime = 0L;
         }
         query.setStart(fromTime.toString());
-
+        query.setEnd(String.valueOf(System.currentTimeMillis()));
         final List<TagVFilter> filters = new ArrayList<>(1);//optional
         TagVFilter.Builder builder = new TagVFilter.Builder();
         builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
@@ -172,6 +174,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
+
         subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
         // add filters
         subQuery.setFilters(filters);
