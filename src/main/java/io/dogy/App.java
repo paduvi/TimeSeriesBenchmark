@@ -46,7 +46,7 @@ public class App implements CommandLineRunner {
         Options options = new Options();
 
         Option modeOpt = new Option("m", "mode", true, "mode option");
-        modeOpt.setRequired(true);
+        modeOpt.setRequired(false);
         options.addOption(modeOpt);
 
         Option numWriteEpochOpt = new Option("we", "write-epoch", true, "write epoch option");
@@ -79,7 +79,8 @@ public class App implements CommandLineRunner {
         try {
             CommandLine cmd = parser.parse(options, args);
 
-            int mode = Integer.parseInt(cmd.getOptionValue(modeOpt.getLongOpt()));
+//            int mode = Integer.parseInt(cmd.getOptionValue(modeOpt.getLongOpt()));
+            int mode = 4;
             int numWriteEpoch = Integer.parseInt(cmd.getOptionValue(numWriteEpochOpt.getLongOpt(), "10"));
             int numWriteThread = Integer.parseInt(cmd.getOptionValue(numWriteThreadOpt.getLongOpt(), "1"));
             int numFetchEpoch = Integer.parseInt(cmd.getOptionValue(numFetchEpochOpt.getLongOpt(), "10"));

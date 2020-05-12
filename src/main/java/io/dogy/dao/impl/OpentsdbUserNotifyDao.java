@@ -6,6 +6,7 @@ import com.stumbleupon.async.Deferred;
 import io.dogy.config.Settings;
 import io.dogy.dao.IUserNotifyDao;
 import io.dogy.model.UserNotify;
+import io.dogy.utility.Util;
 import io.dogy.validator.IValidator;
 import net.opentsdb.core.*;
 import net.opentsdb.query.filter.TagVFilter;
@@ -22,24 +23,21 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.SimpleDateFormat;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(OpentsdbUserNotifyDao.class);
     private final TSDB tsdb;
-    private final Config config;
     private final Settings setting = Settings.getInstance();
 
     @Autowired
     private IValidator<UserNotify> validator;
 
     public OpentsdbUserNotifyDao() throws Exception {
-        this.config = new Config(true);
+        Config config = new Config(true);
         config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HBASE_HOST + ":" + setting.TSDB_HBASE_PORT);
         config.overrideConfig("tsd.storage.hbase.zk_basedir", setting.TSDB_LOCATION);
         config.overrideConfig("tsd.network.port", setting.TSDB_TCP_PORT); //The TCP port to use for accepting connections
@@ -47,9 +45,14 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         config.overrideConfig("tsd.http.cachedir", "/tmp/opentsdb"); //The full path to a location where temporary files can be written
         config.overrideConfig("tsd.core.auto_create_metrics", "true"); //Create new metrics or throw exception if it not exist.
         config.overrideConfig("tsd.core.meta.enable_tsuid_incrementing", "true");
+        config.overrideConfig("tsd.storage.fix_duplicates", "true");
+        config.overrideConfig("tsd.query.skip_unresolved_tagvs", "true");
+
         config.overrideConfig("tsd.storage.hbase.data_table", setting.TSDB_HBASE_DATA_TABLE);//Name of the HBase table where data points are stored
         config.overrideConfig("tsd.storage.hbase.uid_table", setting.TSDB_HBASE_UID_TABLE);//Name of the HBase table where UID information is stored
-        config.overrideConfig("tsd.storage.fix_duplicates", "true");
+        config.overrideConfig("tsd.storage.hbase.tree_table", setting.TSDB_HBASE_TREE_TABLE);//Name of the HBase table where tree data are stored
+        config.overrideConfig("tsd.storage.hbase.meta_table", setting.TSDB_HBASE_META_TABLE);//Name of the HBase table where UID information is stored
+
         this.tsdb = new TSDB(config);
     }
 
@@ -82,19 +85,21 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         //main query
         final TSQuery query = new TSQuery();
         if (fromTime == null) {
             fromTime = System.currentTimeMillis();
         }
-        query.setStart("0");
-        query.setEnd(fromTime.toString());
+        query.setStart(dateFormat.format(new Date(0L)));
+        query.setEnd(dateFormat.format(new Date(fromTime)));
         // at least one sub query required. This is where you specify the metric and
         // tags
         final TSSubQuery subQuery = new TSSubQuery();
         subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
+
         // add filters
-        final List<TagVFilter> filters = new ArrayList<TagVFilter>(1);//optional
+        final List<TagVFilter> filters = new ArrayList<>(1);//optional
         TagVFilter.Builder builder = new TagVFilter.Builder();
         builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
                 .setFilter(userID)
@@ -102,10 +107,11 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
                 .setGroupBy(true);
         filters.add(builder.build());
         subQuery.setFilters(filters);
+
         //Aggregation functions are means of merging two or more data points for a single time stamp into a single value
         subQuery.setAggregator("count");//required. 'count' --> The number of raw data points in the set
         // IMPORTANT: don't forget to add the subQuery
-        final ArrayList<TSSubQuery> subQueries = new ArrayList<TSSubQuery>(1);
+        final ArrayList<TSSubQuery> subQueries = new ArrayList<>(1);
         subQueries.add(subQuery);
         query.setQueries(subQueries);
         query.setMsResolution(true); // otherwise we aggregate on the second.
@@ -145,14 +151,16 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
         //main query
         final TSQuery query = new TSQuery();
 
         if (fromTime == null) {
             fromTime = 0L;
         }
-        query.setStart(fromTime.toString());
-        query.setEnd(String.valueOf(System.currentTimeMillis()));
+        query.setStart(dateFormat.format(new Date(fromTime)));
+        query.setEnd(dateFormat.format(new Date()));
+
         final List<TagVFilter> filters = new ArrayList<>(1);//optional
         TagVFilter.Builder builder = new TagVFilter.Builder();
         builder.setType("literal_or") // In SQL, literal_ is similar to the IN or = predicates.
@@ -166,6 +174,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         final TSSubQuery subQuery = new TSSubQuery();
 
         subQuery.setMetric(Settings.getInstance().TSDB_METRIC);//required
+
         // add filters
         subQuery.setFilters(filters);
         //Aggregation functions are means of merging two or more data points for a single time stamp into a single value
@@ -223,6 +232,9 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         ArrayList<String> tableNames = new ArrayList<>();
         tableNames.add(this.setting.TSDB_HBASE_DATA_TABLE);
         tableNames.add(this.setting.TSDB_HBASE_UID_TABLE);
+        tableNames.add(this.setting.TSDB_HBASE_META_TABLE);
+        tableNames.add(this.setting.TSDB_HBASE_TREE_TABLE);
+
         try {
             Admin admin = connection.getAdmin();
 
@@ -234,7 +246,6 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
                             admin.disableTable(TableName.valueOf(tableName));
                         }
                         admin.truncateTable(TableName.valueOf(tableName), true);
-                        admin.enableTable(TableName.valueOf(tableName));
                     }
                 } catch (IOException e) {
                     logger.error("Failed to truncate table " + tableName + "\nError Msg: ", e);
@@ -243,6 +254,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         } catch (Exception e) {
             logger.error("Could not connect to HBase Admin. Error Msg: ", e);
         }
+        connection.close();
+        tsdb.dropCaches();
     }
 
     private static class BothCallBack implements Callback<Object, Object> {
@@ -293,34 +306,33 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 //        }
     }
 
-//    public static void main(String[] args) {
-//        try {
-//            OpentsdbUserNotifyDao testDao = new OpentsdbUserNotifyDao();
-//
-//
-//            for (int i = 0; i < 10; i++) {
-//                UserNotify userNotify = new UserNotify();
-//                userNotify.setNotifyID(String.valueOf(i));
-//                userNotify.setUserID(String.valueOf(i % 5));
-//                userNotify.setTimestamp(System.currentTimeMillis());
-//                System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
-//                testDao.insert(userNotify);
-//            }
-//            for (UserNotify result : testDao.fetchAsc("3", null)) {
-//                System.out.println();
-//                System.out.println(result);
-//            }
-//            testDao.flushDB();
-//
-//            System.out.println(testDao.tsdb.dataTable().length);
-//            int i = 0;
-//            for (UserNotify result : testDao.fetchAsc("3", null)) {
-//                System.out.println(i++);
-//                System.out.println(result);
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
+    public static void main(String[] args) {
+        try {
+            OpentsdbUserNotifyDao testDao = new OpentsdbUserNotifyDao();
+
+            for (int i = 0; i < 10; i++) {
+                UserNotify userNotify = new UserNotify();
+                userNotify.setNotifyID(String.valueOf(i));
+                userNotify.setUserID(String.valueOf(i % 5));
+                userNotify.setTimestamp(System.currentTimeMillis());
+                System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
+                testDao.insert(userNotify);
+            }
+            for (UserNotify result : testDao.fetchAsc("6", null)) {
+                System.out.println();
+                System.out.println(result);
+            }
+            testDao.flushDB();
+
+            System.out.println(testDao.tsdb.dataTable().length);
+            int i = 0;
+            for (UserNotify result : testDao.fetchAsc("6", null)) {
+                System.out.println(i++);
+                System.out.println(result);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 }
