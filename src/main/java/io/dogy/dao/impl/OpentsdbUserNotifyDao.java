@@ -13,6 +13,7 @@ import io.dogy.validator.IValidator;
 import net.opentsdb.core.*;
 import net.opentsdb.core.Query;
 import net.opentsdb.query.filter.TagVFilter;
+import net.opentsdb.query.filter.TagVNotKeyFilter;
 import net.opentsdb.uid.NoSuchUniqueName;
 import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
@@ -249,6 +250,7 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
                             admin.disableTable(TableName.valueOf(tableName));
                         }
                         admin.truncateTable(TableName.valueOf(tableName), true);
+                        admin.enableTableAsync(TableName.valueOf(tableName));
                     }
                 }
                 catch (IOException e) {
@@ -258,6 +260,8 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
         } catch (Exception e){
             System.out.print("Could not connect to HBase Admin. Error Msg: " + e.getMessage());
         }
+        connection.close();
+        tsdb.dropCaches();
     }
 
     private static class BothCallBack implements Callback<Object, Object> {
