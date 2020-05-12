@@ -130,6 +130,7 @@ public class HBaseUserNotifyDao implements IUserNotifyDao {
             if (admin.tableExists(tableName)) {
                 admin.disableTable(tableName);
                 admin.truncateTable(tableName, true);
+                admin.enableTable(tableName);
             }
         }
     }

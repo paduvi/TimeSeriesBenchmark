@@ -1,35 +1,25 @@
 package io.dogy.dao.impl;
 
 import com.beust.jcommander.internal.Lists;
-import com.google.inject.internal.cglib.core.$ObjectSwitchCallback;
 import com.stumbleupon.async.Callback;
 import com.stumbleupon.async.Deferred;
-import com.sun.org.apache.bcel.internal.generic.ANEWARRAY;
 import io.dogy.config.Settings;
 import io.dogy.dao.IUserNotifyDao;
 import io.dogy.model.UserNotify;
-import io.dogy.utility.Util;
 import io.dogy.validator.IValidator;
 import net.opentsdb.core.*;
-import net.opentsdb.core.Query;
 import net.opentsdb.query.filter.TagVFilter;
-import net.opentsdb.uid.NoSuchUniqueName;
-import net.opentsdb.uid.UniqueId.UniqueIdType;
 import net.opentsdb.utils.Config;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
-import org.hbase.async.DeleteRequest;
-import org.hbase.async.Scanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.hbase.async.HBaseClient.*;
-
-import org.apache.hadoop.conf.Configuration;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,17 +30,17 @@ import java.util.concurrent.CompletableFuture;
 
 public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
+    private static final Logger logger = LoggerFactory.getLogger(OpentsdbUserNotifyDao.class);
     private final TSDB tsdb;
     private final Config config;
-    Settings setting = Settings.getInstance();
+    private final Settings setting = Settings.getInstance();
 
     @Autowired
     private IValidator<UserNotify> validator;
 
     public OpentsdbUserNotifyDao() throws Exception {
-
         this.config = new Config(true);
-        config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HBASE_HOST+":"+setting.TSDB_HBASE_PORT);
+        config.overrideConfig("tsd.storage.hbase.zk_quorum", setting.TSDB_HBASE_HOST + ":" + setting.TSDB_HBASE_PORT);
         config.overrideConfig("tsd.storage.hbase.zk_basedir", setting.TSDB_LOCATION);
         config.overrideConfig("tsd.network.port", setting.TSDB_TCP_PORT); //The TCP port to use for accepting connections
         config.overrideConfig("tsd.http.staticroot", "/usr/share/opentsdb/static"); //Location of a directory where static files
@@ -220,43 +210,38 @@ public class OpentsdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() throws Exception {
-
-        Admin admin = null;
-
         Configuration config = HBaseConfiguration.create();
         config.set("hbase.zookeeper.quorum", this.setting.TSDB_HBASE_HOST);
-        config.setInt("hbase.zookeeper.property.clientPort", Integer.valueOf(setting.TSDB_HBASE_PORT));
+        config.setInt("hbase.zookeeper.property.clientPort", Integer.parseInt(setting.TSDB_HBASE_PORT));
         config.set("zookeeper.znode.parent", this.setting.TSDB_LOCATION);
         config.set("hbase.rpc.timeout", "10000");
         HBaseAdmin.checkHBaseAvailable(config);
 
-
         // Add custom config parameters here
         Connection connection = ConnectionFactory.createConnection(config);
-
 
         ArrayList<String> tableNames = new ArrayList<>();
         tableNames.add(this.setting.TSDB_HBASE_DATA_TABLE);
         tableNames.add(this.setting.TSDB_HBASE_UID_TABLE);
         try {
-            admin = connection.getAdmin();
+            Admin admin = connection.getAdmin();
 
             for (String tableName : tableNames) {
-                System.out.print("Truncate table " + tableName);
+                logger.info("Truncate table " + tableName);
                 try {
                     if (admin.tableExists(TableName.valueOf(tableName))) {
                         if (!admin.isTableDisabled(TableName.valueOf(tableName))) {
                             admin.disableTable(TableName.valueOf(tableName));
                         }
                         admin.truncateTable(TableName.valueOf(tableName), true);
+                        admin.enableTable(TableName.valueOf(tableName));
                     }
-                }
-                catch (IOException e) {
-                    System.out.print("Failed to truncate table " + tableName + "\nError Msg: " + e.getMessage());
+                } catch (IOException e) {
+                    logger.error("Failed to truncate table " + tableName + "\nError Msg: ", e);
                 }
             }
-        } catch (Exception e){
-            System.out.print("Could not connect to HBase Admin. Error Msg: " + e.getMessage());
+        } catch (Exception e) {
+            logger.error("Could not connect to HBase Admin. Error Msg: ", e);
         }
     }
 
