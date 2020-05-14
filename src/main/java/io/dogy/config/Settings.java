@@ -55,6 +55,8 @@ public class Settings {
     public String TSDB_TCP_PORT="4242";
     public String TSDB_HBASE_DATA_TABLE="tsdb";
     public String TSDB_HBASE_UID_TABLE="tsdb-uid";
+    public String TSDB_HBASE_TREE_TABLE="tsdb-tree";
+    public String TSDB_HBASE_META_TABLE="tsdb-meta";
 
     public static Settings getInstance() {
         Settings result = instance;

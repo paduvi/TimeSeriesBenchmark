@@ -10,6 +10,7 @@
     <logger name="org.apache.hadoop" level="ERROR"/>
     <logger name="net.opentsdb.uid" level="WARN"/>
     <logger name="org.quartz.core" level="WARN"/>
+    <logger name="net.opentsdb.query.filter.TagVFilter" level="OFF"/>
     <logger name="org.hbase" level="WARN"/>
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
