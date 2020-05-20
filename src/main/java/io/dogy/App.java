@@ -1,12 +1,10 @@
 package io.dogy;
 
 import io.dogy.dao.IUserNotifyDao;
-import io.dogy.dao.impl.HBaseUserNotifyDao;
-import io.dogy.dao.impl.InfluxDbUserNotifyDao;
-import io.dogy.dao.impl.OpentsdbUserNotifyDao;
-import io.dogy.dao.impl.TimescaleDbUserNotifyDao;
+import io.dogy.dao.impl.*;
 import io.dogy.service.BenchmarkService;
 import org.apache.commons.cli.*;
+import org.kairosdb.core.KairosDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -129,6 +127,17 @@ public class App implements CommandLineRunner {
                     IUserNotifyDao opentsdbUserNotifyDao = factory.createBean(OpentsdbUserNotifyDao.class);
                     benchmarkService = new BenchmarkService(
                             opentsdbUserNotifyDao,
+                            numWriteEpoch,
+                            numWriteThread,
+                            numFetchEpoch,
+                            numFetchThread,
+                            numBootstrap
+                    );
+                    break;
+                case 5: //kairos
+                    IUserNotifyDao kairosdbUserNotifyDao = factory.createBean(KairosdbUserNotifyDao.class);
+                    benchmarkService = new BenchmarkService(
+                            kairosdbUserNotifyDao,
                             numWriteEpoch,
                             numWriteThread,
                             numFetchEpoch,

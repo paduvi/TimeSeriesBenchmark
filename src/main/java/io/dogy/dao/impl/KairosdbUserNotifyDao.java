@@ -25,43 +25,53 @@ import java.util.concurrent.CompletableFuture;
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
     private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
     private String dbUrl = "localhost";
-    private String port = "8083";
+    private String port = "8080";
     private String metricName = "test";
     private HttpClient client;
     private MetricBuilder metricBuilder;
     private QueryBuilder queryBuilder;
-    private SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
+
+    public KairosdbUserNotifyDao() throws Exception {
+        client = new HttpClient("http://" + dbUrl + ":" + port);
+        metricBuilder = MetricBuilder.getInstance();
+        queryBuilder = QueryBuilder.getInstance();
+
+    }
 
     @Override
     public void insert(UserNotify userNotify) throws Exception {
-        HashMap<String, String> tags = new HashMap<>();
-        tags.put("user_id", userNotify.getUserID());
-        tags.put("notify_id", userNotify.getNotifyID());
-        metricBuilder.getMetrics().get(0).addTags(tags).addDataPoint(userNotify.getTimestamp(), userNotify.getData());
+        ;
 
+//        HashMap<String, String> tags = new HashMap<>();
+//        tags.put("user_id", userNotify.getUserID());
+//        tags.put("notify_id", userNotify.getNotifyID());
+
+        Metric metric = metricBuilder.addMetric(metricName)
+                .addTag("user_id", userNotify.getUserID())
+                .addTag("notify_id", userNotify.getNotifyID());
+        metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify.getData()));
         Response response = client.pushMetrics(metricBuilder);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         int statusCode = client.pushMetrics(metricBuilder).getStatusCode();
+        System.out.println(statusCode);
         switch (statusCode){
             case 204:
+                System.out.println(("insert success"));
                 future.complete("Success!");
                 break;
             case 500:
             case 400:
+                System.out.println(("insert failed"));
                List<String> errors = response.getErrors();
+               System.out.println(StringUtils.join(errors,"\n"));
                future.completeExceptionally(new Throwable(StringUtils.join(errors,"\n")));
+                break;
         }
     }
 
-    public KairosdbUserNotifyDao() throws Exception {
-        client = new HttpClient("https:" + dbUrl + ":" + port);
-        metricBuilder = MetricBuilder.getInstance();
-        Metric metric = metricBuilder.addMetric(metricName);
-//        metric.addTag("user_id", "123456");
-        client.pushMetrics(metricBuilder);
-    }
+
 
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
@@ -75,8 +85,10 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         Response response = client.pushMetrics(metricBuilder);
 
         if (response.getErrors().isEmpty()) {
+            System.out.println(("insert success"));
             future.complete("Sent successful");
         } else {
+            System.out.println(("insert failed"));
             future.completeExceptionally(new Throwable("Error"));
         }
         return future;
@@ -85,6 +97,10 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
+
+        if (fromTime == null) {
+            fromTime = System.currentTimeMillis();
+        }
 
         queryBuilder.setStart(null)
                 .setEnd(new Date(fromTime))
@@ -112,14 +128,23 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                 break;
             case 500:
             case 400:
+                System.out.println(("failed"));
                 List<String> errors = response.getErrors();
+                System.out.println(StringUtils.join(errors,"\n"));
                 future.completeExceptionally(new Throwable(StringUtils.join(errors,"\n")));
+                break;
         }
         return userNotifyList;
     }
 
     @Override
     public List<UserNotify> fetchAsc(String userID, Long fromTime) throws Exception {
+
+        if (fromTime==null)
+        {
+            fromTime =0L;
+        }
+
         queryBuilder.setStart(new Date(fromTime))
                 .setEnd(new Date(System.currentTimeMillis()))
                 .addMetric(metricName)
@@ -127,26 +152,35 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         QueryResponse response = client.query(queryBuilder);
 
         CompletableFuture<String> future = new CompletableFuture<>();
-        int statusCode = client.pushMetrics(metricBuilder).getStatusCode();
+        int statusCode = client.query(queryBuilder).getStatusCode();
+        System.out.println(statusCode);
         List<UserNotify> userNotifyList = new ArrayList<>();
         switch (statusCode){
-            case 204:
+            case 200:
+                System.out.println(("success"));
                 future.complete("Success!");
                 List<Results> results;
                 List<DataPoint> dataPoints;
                 for (Queries query : response.getQueries()){
+                    System.out.println(query.toString());
                     results = query.getResults();
                     for(Results result:results){
+                        System.out.println(result.toString());
                         dataPoints = result.getDataPoints();
+                        System.out.println("num of dataPoint: "+dataPoints.size());
                         for(DataPoint dataPoint:dataPoints){
+                            System.out.println(dataPoint.toString());
                             userNotifyList.add( Util.OBJECT_MAPPER.readValue(dataPoint.stringValue(), UserNotify.class ));
                         }
                     }
                 }
                 break;
             case 500:
+                System.out.println(("failed 500"));
             case 400:
+                System.out.println(("failed 400"));
                 List<String> errors = response.getErrors();
+                System.out.println(errors.size()+StringUtils.join(errors,"\n"));
                 future.completeExceptionally(new Throwable(StringUtils.join(errors,"\n")));
         }
         return userNotifyList;
@@ -159,4 +193,36 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     //    private HttpClient createHttpClient(){
 //
 //    }
+    public static void main (String[] args){
+        try{
+            KairosdbUserNotifyDao kairos = new KairosdbUserNotifyDao();
+            kairos.flushDB();
+            for (int i = 0; i < 10; i++) {
+                UserNotify userNotify = new UserNotify();
+                userNotify.setNotifyID(String.valueOf(i));
+                userNotify.setUserID(String.valueOf(i % 5));
+                userNotify.setData(Util.OBJECT_MAPPER.createObjectNode());
+                userNotify.setTimestamp(System.currentTimeMillis());
+                System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
+                kairos.insert(userNotify);
+            }
+
+            for (UserNotify result : kairos.fetchAsc("1", null)) {
+
+                System.out.println(result);
+            }
+            kairos.flushDB();
+
+
+           int i = 0;
+            for (UserNotify result : kairos.fetchAsc("1", null)) {
+                System.out.println(i++);
+                System.out.println(result);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 }
