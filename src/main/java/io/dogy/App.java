@@ -4,7 +4,6 @@ import io.dogy.dao.IUserNotifyDao;
 import io.dogy.dao.impl.*;
 import io.dogy.service.BenchmarkService;
 import org.apache.commons.cli.*;
-import org.kairosdb.core.KairosDBService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +21,6 @@ public class App implements CommandLineRunner {
 
     @Autowired
     private ApplicationContext context;
-
-
-//    @Autowired
-//    @Qualifier("KairosdbUserNotifyDao")
-//    private IUserNotifyDao kairosdbUserNotifyDao;
 
     public static void main(String[] args) {
         WebApplicationType webType = WebApplicationType.NONE;
