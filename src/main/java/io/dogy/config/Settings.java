@@ -58,6 +58,10 @@ public class Settings {
     public String TSDB_HBASE_TREE_TABLE="tsdb-tree";
     public String TSDB_HBASE_META_TABLE="tsdb-meta";
 
+    public String KAIROS_URL ="127.0.0.1";
+    public String KAIROS_PORT="8080";
+    public String KAIROS_METRIC="test";
+
     public static Settings getInstance() {
         Settings result = instance;
         if (result == null) {
