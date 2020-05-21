@@ -2,6 +2,7 @@ package io.dogy.dao.impl;
 
 import io.dogy.config.Settings;
 import io.dogy.dao.IUserNotifyDao;
+import io.dogy.model.Pair;
 import io.dogy.model.UserNotify;
 import io.dogy.utility.Util;
 import io.dogy.validator.IValidator;
@@ -22,7 +23,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
@@ -31,6 +34,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     private final MetricBuilder metricBuilder;
     private final QueryBuilder queryBuilder;
     private final Settings setting;
+    private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
     @Autowired
     private IValidator<UserNotify> validator;
@@ -72,24 +76,8 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         if (!validator.validate(userNotify)) {
             throw new RuntimeException("Invalid data");
         }
-        Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
-                .addTag("user_id", userNotify.getUserID())
-                .addTag("notify_id", userNotify.getNotifyID());
-        metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
-        Response response = client.pushMetrics(metricBuilder);
-
         CompletableFuture<Object> future = new CompletableFuture<>();
-        int statusCode = client.pushMetrics(metricBuilder).getStatusCode();
-        switch (statusCode) {
-            case 204:
-                future.complete("Success!");
-                break;
-            case 500:
-            case 400:
-                List<String> errors = response.getErrors();
-                future.completeExceptionally(new Throwable(StringUtils.join(errors, "\n")));
-                break;
-        }
+        queue.add(new Pair<>(userNotify, future));
         return future;
     }
 
