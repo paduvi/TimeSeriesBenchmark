@@ -16,16 +16,23 @@ import org.kairosdb.client.response.Queries;
 import org.kairosdb.client.response.QueryResponse;
 import org.kairosdb.client.response.Response;
 import org.kairosdb.client.response.Results;
+import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
@@ -46,6 +53,54 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         client = new HttpClient(connectionString);
         metricBuilder = MetricBuilder.getInstance();
         queryBuilder = QueryBuilder.getInstance();
+
+        AtomicBoolean isAvailable = new AtomicBoolean(true);
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
+        for (int i = 0; i < Settings.getInstance().EVENT_LOOP_COUNT; i++) {
+            CompletableFuture.runAsync(() -> {
+                while (isAvailable.get()) {
+                    List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
+
+                    try {
+                        final int BATCH_SIZE = 100;
+                        int n = queue.drainTo(batch, BATCH_SIZE);
+                        if (n == 0) {
+                            Thread.sleep(50);
+                            continue;
+                        }
+
+                        List<Pair<UserNotify, PGobject>> list = new ArrayList<>();
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            PGobject data = new PGobject();
+                            data.setType("jsonb");
+                            data.setValue(Util.OBJECT_MAPPER.writeValueAsString(pair._1.getData()));
+
+                            list.add(new Pair<>(pair._1, data));
+                        }
+                        Pair<UserNotify, PGobject> pair = list.get(i);
+                        UserNotify userNotify = pair._1;
+                        PGobject data = pair._2;
+
+                        Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
+                                .addTag("user_id", userNotify.getUserID())
+                                .addTag("notify_id", userNotify.getNotifyID());
+                        metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
+                        Response response = client.pushMetrics(metricBuilder);
+
+                    } catch (Exception e) {
+                        logger.error("Exception when insert timescaledb row: ", e);
+
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.completeExceptionally(e);
+                        }
+                    } finally {
+                        for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
+                            pair._2.complete(new Object());
+                        }
+                    }
+                }
+            });
+        }
     }
 
     @Override
