@@ -16,17 +16,11 @@ import org.kairosdb.client.response.Queries;
 import org.kairosdb.client.response.QueryResponse;
 import org.kairosdb.client.response.Response;
 import org.kairosdb.client.response.Results;
-import org.postgresql.util.PGobject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -69,26 +63,27 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                             continue;
                         }
 
-                        List<Pair<UserNotify, PGobject>> list = new ArrayList<>();
                         for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
-                            PGobject data = new PGobject();
-                            data.setType("jsonb");
-                            data.setValue(Util.OBJECT_MAPPER.writeValueAsString(pair._1.getData()));
+                            UserNotify userNotify = pair._1;
 
-                            list.add(new Pair<>(pair._1, data));
+                            Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
+                                    .addTag("user_id", userNotify.getUserID())
+                                    .addTag("notify_id", userNotify.getNotifyID());
+                            metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
                         }
-                        Pair<UserNotify, PGobject> pair = list.get(i);
-                        UserNotify userNotify = pair._1;
-                        PGobject data = pair._2;
 
-                        Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
-                                .addTag("user_id", userNotify.getUserID())
-                                .addTag("notify_id", userNotify.getNotifyID());
-                        metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
                         Response response = client.pushMetrics(metricBuilder);
-
+                        int statusCode = response.getStatusCode();
+                        switch (statusCode) {
+                            case 204:
+                                break;
+                            case 500:
+                            case 400:
+                                logger.info(String.valueOf(statusCode));
+                                throw new Exception(StringUtils.join(response.getErrors(), "\n"));
+                        }
                     } catch (Exception e) {
-                        logger.error("Exception when insert timescaledb row: ", e);
+                        logger.error("Exception when insert kairosdb row: ", e);
 
                         for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
                             pair._2.completeExceptionally(e);
@@ -125,7 +120,6 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         }
     }
 
-
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
         if (!validator.validate(userNotify)) {
@@ -135,7 +129,6 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         queue.add(new Pair<>(userNotify, future));
         return future;
     }
-
 
     @Override
     public List<UserNotify> fetchDesc(String userID, Long fromTime) throws Exception {
