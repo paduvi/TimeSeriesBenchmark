@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -47,7 +48,10 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         client = new HttpClient(connectionString);
         metricBuilder = MetricBuilder.getInstance();
         queryBuilder = QueryBuilder.getInstance();
+    }
 
+    @PostConstruct
+    void init() {
         AtomicBoolean isAvailable = new AtomicBoolean(true);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
         for (int i = 0; i < Settings.getInstance().EVENT_LOOP_COUNT; i++) {
