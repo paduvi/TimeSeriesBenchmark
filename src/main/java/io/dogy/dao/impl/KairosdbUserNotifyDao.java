@@ -56,6 +56,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> isAvailable.set(false)));
         for (int i = 0; i < Settings.getInstance().EVENT_LOOP_COUNT; i++) {
             CompletableFuture.runAsync(() -> {
+                MetricBuilder asyncMetricBuilder = MetricBuilder.getInstance();
                 while (isAvailable.get()) {
                     List<Pair<UserNotify, CompletableFuture<Object>>> batch = new ArrayList<>();
 
@@ -70,13 +71,12 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                         for (Pair<UserNotify, CompletableFuture<Object>> pair : batch) {
                             UserNotify userNotify = pair._1;
 
-                            Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
+                            Metric metric = asyncMetricBuilder.addMetric(setting.KAIROS_METRIC)
                                     .addTag("user_id", userNotify.getUserID())
                                     .addTag("notify_id", userNotify.getNotifyID());
                             metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
                         }
-
-                        Response response = client.pushMetrics(metricBuilder);
+                        Response response = client.pushMetrics(asyncMetricBuilder);
                         int statusCode = response.getStatusCode();
                         switch (statusCode) {
                             case 204:
@@ -221,7 +221,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                 userNotify.setData(Util.OBJECT_MAPPER.createObjectNode());
                 userNotify.setTimestamp(System.currentTimeMillis());
                 System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
-                kairos.insert(userNotify);
+                kairos.insertAsync(userNotify);
             }
 
             for (UserNotify result : kairos.fetchAsc("1", null)) {
