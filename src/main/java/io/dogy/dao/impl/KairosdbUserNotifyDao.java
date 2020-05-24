@@ -33,8 +33,6 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
     private final HttpClient client;
-    private final MetricBuilder metricBuilder;
-    private final QueryBuilder queryBuilder;
     private final Settings setting;
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
@@ -43,11 +41,9 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     public KairosdbUserNotifyDao() throws Exception {
         setting = Settings.getInstance();
-
         String connectionString = String.format("http://%s:%s", setting.KAIROS_URL, setting.KAIROS_PORT);
         client = new HttpClient(connectionString);
-        metricBuilder = MetricBuilder.getInstance();
-        queryBuilder = QueryBuilder.getInstance();
+
     }
 
     @PostConstruct
@@ -104,6 +100,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void insert(UserNotify userNotify) throws Exception {
+        MetricBuilder metricBuilder = MetricBuilder.getInstance();
         if (!validator.validate(userNotify)) {
             throw new RuntimeException("Invalid data");
         }
@@ -140,6 +137,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
             fromTime = System.currentTimeMillis();
         }
 
+        QueryBuilder queryBuilder = null;
         queryBuilder.setStart(null)
                 .setEnd(new Date(fromTime))
                 .addMetric(setting.KAIROS_METRIC)
@@ -148,7 +146,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
         List<UserNotify> userNotifyList = new ArrayList<>();
 
-        int statusCode = client.pushMetrics(metricBuilder).getStatusCode();
+        int statusCode = client.query(queryBuilder).getStatusCode();
         switch (statusCode) {
             case 204:
                 for (Queries query : response.getQueries()) {
@@ -174,7 +172,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         if (fromTime == null) {
             fromTime = 0L;
         }
-
+        QueryBuilder queryBuilder = null;
         queryBuilder.setStart(new Date(fromTime))
                 .setEnd(new Date(System.currentTimeMillis()))
                 .addMetric(setting.KAIROS_METRIC)
@@ -183,7 +181,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
         List<UserNotify> userNotifyList = new ArrayList<>();
 
-        int statusCode = client.pushMetrics(metricBuilder).getStatusCode();
+        int statusCode = client.query(queryBuilder).getStatusCode();
         switch (statusCode) {
             case 204:
                 for (Queries query : response.getQueries()) {
