@@ -4,9 +4,13 @@ import io.dogy.config.Settings;
 import io.dogy.dao.IUserNotifyDao;
 import io.dogy.model.Pair;
 import io.dogy.model.UserNotify;
+import io.dogy.utility.CustomHttpClient;
 import io.dogy.utility.Util;
 import io.dogy.validator.IValidator;
 import org.apache.commons.lang.StringUtils;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.kairosdb.client.HttpClient;
 import org.kairosdb.client.builder.DataPoint;
 import org.kairosdb.client.builder.Metric;
@@ -32,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     private static final Logger logger = LoggerFactory.getLogger(KairosdbUserNotifyDao.class);
-    private final HttpClient client;
+    private final CustomHttpClient client;
     private final Settings setting;
     private final BlockingQueue<Pair<UserNotify, CompletableFuture<Object>>> queue = new LinkedBlockingQueue<>();
 
@@ -42,8 +46,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     public KairosdbUserNotifyDao() throws Exception {
         setting = Settings.getInstance();
         String connectionString = String.format("http://%s:%s", setting.KAIROS_URL, setting.KAIROS_PORT);
-        client = new HttpClient(connectionString);
-
+        client = new CustomHttpClient(connectionString, 200, 200);
     }
 
     @PostConstruct
@@ -137,8 +140,8 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
             fromTime = System.currentTimeMillis();
         }
 
-        QueryBuilder queryBuilder = null;
-        queryBuilder.setStart(null)
+        QueryBuilder queryBuilder = QueryBuilder.getInstance();
+        queryBuilder.setStart(new Date(0L))
                 .setEnd(new Date(fromTime))
                 .addMetric(setting.KAIROS_METRIC)
                 .addTag("user_id", userID);
