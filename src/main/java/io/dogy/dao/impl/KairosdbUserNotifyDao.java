@@ -69,7 +69,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                             Metric metric = asyncMetricBuilder.addMetric(setting.KAIROS_METRIC)
                                     .addTag("user_id", userNotify.getUserID())
                                     .addTag("notify_id", userNotify.getNotifyID());
-                            metric.addDataPoint(userNotify.getTimestamp(), Util.OBJECT_MAPPER.writeValueAsString(userNotify));
+                            metric.addDataPoint(userNotify.getTimestamp(),userNotify);
                         }
                         Response response = client.pushMetrics(asyncMetricBuilder);
                         int statusCode = response.getStatusCode();
@@ -100,9 +100,9 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
     @Override
     public void insert(UserNotify userNotify) throws Exception {
         MetricBuilder metricBuilder = MetricBuilder.getInstance();
-        if (!validator.validate(userNotify)) {
-            throw new RuntimeException("Invalid data");
-        }
+//        if (!validator.validate(userNotify)) {
+//            throw new RuntimeException("Invalid data");
+//        }
         Metric metric = metricBuilder.addMetric(setting.KAIROS_METRIC)
                 .addTag("user_id", userNotify.getUserID())
                 .addTag("notify_id", userNotify.getNotifyID());
@@ -122,9 +122,9 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public CompletableFuture<Object> insertAsync(UserNotify userNotify) throws Exception {
-        if (!validator.validate(userNotify)) {
-            throw new RuntimeException("Invalid data");
-        }
+//        if (!validator.validate(userNotify)) {
+//            throw new RuntimeException("Invalid data");
+//        }
         CompletableFuture<Object> future = new CompletableFuture<>();
         queue.add(new Pair<>(userNotify, future));
         return future;
@@ -153,7 +153,8 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                     for (Results result : results) {
                         List<DataPoint> dataPoints = result.getDataPoints();
                         for (DataPoint dataPoint : dataPoints) {
-                            userNotifyList.add(Util.OBJECT_MAPPER.readValue(dataPoint.stringValue(), UserNotify.class));
+                            System.out.println("datapoint: "+dataPoint.getValue());
+                            userNotifyList.add(Util.OBJECT_MAPPER.readValue(Util.OBJECT_MAPPER.writeValueAsString(dataPoint.getValue()), UserNotify.class));
                         }
                     }
                 }
@@ -171,7 +172,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         if (fromTime == null) {
             fromTime = 0L;
         }
-        QueryBuilder queryBuilder = null;
+        QueryBuilder queryBuilder = QueryBuilder.getInstance();
         queryBuilder.setStart(new Date(fromTime))
                 .setEnd(new Date(System.currentTimeMillis()))
                 .addMetric(setting.KAIROS_METRIC)
@@ -181,14 +182,18 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
         List<UserNotify> userNotifyList = new ArrayList<>();
 
         int statusCode = client.query(queryBuilder).getStatusCode();
+
+        System.out.println(statusCode);
         switch (statusCode) {
             case 204:
                 for (Queries query : response.getQueries()) {
                     List<Results> results = query.getResults();
+                    System.out.println(results.toString());
                     for (Results result : results) {
                         List<DataPoint> dataPoints = result.getDataPoints();
                         for (DataPoint dataPoint : dataPoints) {
-                            userNotifyList.add(Util.OBJECT_MAPPER.readValue(dataPoint.stringValue(), UserNotify.class));
+                            System.out.println("datapoint: "+dataPoint.getValue().toString());
+                            userNotifyList.add(Util.OBJECT_MAPPER.readValue(Util.OBJECT_MAPPER.writeValueAsString(dataPoint.getValue()), UserNotify.class));
                         }
                     }
                 }
@@ -203,14 +208,14 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
 
     @Override
     public void flushDB() throws Exception {
-        logger.info("Flushing " + setting.KAIROS_METRIC);
+        logger.info("Flushing kairos metric " + setting.KAIROS_METRIC);
         client.deleteMetric(setting.KAIROS_METRIC);
     }
 
     public static void main(String[] args) {
         try {
             KairosdbUserNotifyDao kairos = new KairosdbUserNotifyDao();
-            kairos.flushDB();
+
             for (int i = 0; i < 10; i++) {
                 UserNotify userNotify = new UserNotify();
                 userNotify.setNotifyID(String.valueOf(i));
@@ -218,7 +223,7 @@ public class KairosdbUserNotifyDao implements IUserNotifyDao {
                 userNotify.setData(Util.OBJECT_MAPPER.createObjectNode());
                 userNotify.setTimestamp(System.currentTimeMillis());
                 System.out.println(Util.OBJECT_MAPPER.writeValueAsString(userNotify));
-                kairos.insertAsync(userNotify);
+                kairos.insert(userNotify);
             }
 
             for (UserNotify result : kairos.fetchAsc("1", null)) {
