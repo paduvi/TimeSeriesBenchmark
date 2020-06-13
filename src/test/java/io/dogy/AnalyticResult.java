@@ -267,7 +267,7 @@ public class AnalyticResult {
     }
 
     public static void main(String[] args) {
-        long minTime = 1591959600000L;
+        long minTime = 1592031600000L;
         long maxTime = System.currentTimeMillis();
 
         AnalyticResult analyticResult = new AnalyticResult();
