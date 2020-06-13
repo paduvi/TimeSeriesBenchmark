@@ -19,6 +19,7 @@
         <hbase.version>1.4.13</hbase.version>
         <influxdb.version>1.7.0</influxdb.version>
         <logback.contrib.version>0.1.5</logback.contrib.version>
+        <elasticsearch.version>7.6.1</elasticsearch.version>
     </properties>
 
     <parent>
@@ -57,6 +58,25 @@
                     <artifactId>slf4j-log4j12</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!-- Elasticsearch -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
+            <version>${elasticsearch.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>${elasticsearch.version}</version>
         </dependency>
 
         <!-- Postgresql -->
@@ -235,6 +255,20 @@
             <groupId>com.fasterxml.jackson.jaxrs</groupId>
             <artifactId>jackson-jaxrs-json-provider</artifactId>
         </dependency>
+
+        <!-- Excel, PDF,... -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>3.15</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>3.15</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -251,22 +285,6 @@
                     </dependency>
                 </dependencies>
             </plugin>
-
-<!--                <plugin>-->
-<!--                    <groupId>org.codehaus.mojo</groupId>-->
-<!--                    <artifactId>exec-maven-plugin</artifactId>-->
-<!--                    <version>1.2.1</version>-->
-<!--                    <executions>-->
-<!--                        <execution>-->
-<!--                            <goals>-->
-<!--                                <goal>java</goal>-->
-<!--                            </goals>-->
-<!--                        </execution>-->
-<!--                    </executions>-->
-<!--                    <configuration>-->
-<!--                        <mainClass>io.dogy.dao.impl.KairosdbUserNotifyDao</mainClass>-->
-<!--                    </configuration>-->
-<!--                </plugin>-->
 
         </plugins>
     </build>

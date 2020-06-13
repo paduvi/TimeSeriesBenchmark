@@ -23,12 +23,17 @@ import java.util.concurrent.CompletableFuture;
 
 public class Util {
 
+    public static final String CLEAR_CHAR = "\033[F\033[K";
     public static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     static {
         OBJECT_MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         OBJECT_MAPPER.setSerializationInclusion(Include.NON_NULL);
         OBJECT_MAPPER.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+    }
+
+    public static void clearCurrentConsoleLine() {
+        System.out.print(CLEAR_CHAR);
     }
 
     public static <T> T deepCopy(Object value, Class<T> clazz) throws IOException {

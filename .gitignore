@@ -8,5 +8,6 @@
 .classpath
 .DS_Store
 .vscode
+*.xlsx
 
 settings.yaml
