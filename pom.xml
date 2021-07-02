@@ -19,7 +19,7 @@
         <hbase.version>1.4.13</hbase.version>
         <influxdb.version>1.7.0</influxdb.version>
         <logback.contrib.version>0.1.5</logback.contrib.version>
-        <elasticsearch.version>7.6.1</elasticsearch.version>
+        <elasticsearch.version>7.11.2</elasticsearch.version>
     </properties>
 
     <parent>
